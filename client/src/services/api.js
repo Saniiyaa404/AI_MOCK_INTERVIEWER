@@ -40,3 +40,59 @@ export async function startInterview(role, difficulty) {
 
   return response.json();
 }
+
+export async function generateQuestion(
+    resumeText,
+    role,
+    difficulty
+) {
+    const response = await fetch(
+        "http://localhost:5000/api/interview/generate-question",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                resumeText,
+                role,
+                difficulty,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to generate question");
+    }
+
+    return response.json();
+}
+
+export async function evaluateAnswer(
+    question,
+    answer,
+    role,
+    difficulty
+) {
+    const response = await fetch(
+        "http://localhost:5000/api/interview/evaluate-answer",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                question,
+                answer,
+                role,
+                difficulty,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to evaluate answer");
+    }
+
+    return response.json();
+}

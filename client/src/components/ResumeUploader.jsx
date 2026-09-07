@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { uploadResume } from "../services/api";
 
-function ResumeUploader() {
+function ResumeUploader({ onResumeExtracted }) {
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
   const [resumeText, setResumeText] = useState("");
@@ -17,6 +17,8 @@ function ResumeUploader() {
 
     setMessage(data.message);
     setResumeText(data.text);
+
+    onResumeExtracted(data.text);
     
   } catch (error) {
     console.error(error);

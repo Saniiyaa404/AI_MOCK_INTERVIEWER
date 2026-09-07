@@ -1,18 +1,25 @@
+import { useState } from "react";
 import ResumeUploader from "./components/ResumeUploader";
 import InterviewSetup from "./components/InterviewSetup";
 
 function App() {
-  return (
-    <div>
-      <h1>AI Mock Interviewer</h1>
+    const [resumeText, setResumeText] = useState("");
 
-      <ResumeUploader />
+    return (
+        <div>
+            <h1>AI Mock Interviewer</h1>
 
-      <hr />
+            <ResumeUploader
+                onResumeExtracted={setResumeText}
+            />
 
-      <InterviewSetup />
-    </div>
-  );
+            <hr />
+
+            <InterviewSetup
+                resumeText={resumeText}
+            />
+        </div>
+    );
 }
 
 export default App;
