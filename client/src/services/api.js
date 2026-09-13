@@ -44,7 +44,8 @@ export async function startInterview(role, difficulty) {
 export async function generateQuestion(
     resumeText,
     role,
-    difficulty
+    difficulty,
+    topicPlan
 ) {
     const response = await fetch(
         "http://localhost:5000/api/interview/generate-question",
@@ -57,6 +58,7 @@ export async function generateQuestion(
                 resumeText,
                 role,
                 difficulty,
+                topicPlan
             }),
         }
     );
@@ -92,6 +94,66 @@ export async function evaluateAnswer(
 
     if (!response.ok) {
         throw new Error("Failed to evaluate answer");
+    }
+
+    return response.json();
+}
+
+export async function generateAdaptiveQuestion(
+    resumeText,
+    role,
+    difficulty,
+    interviewHistory,
+    topicPlan,
+    coveredTopics
+) {
+    const response = await fetch(
+        "http://localhost:5000/api/interview/generate-adaptive-question",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                resumeText,
+                role,
+                difficulty,
+                interviewHistory,
+                topicPlan,
+                coveredTopics
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to generate adaptive question");
+    }
+
+    return response.json();
+}
+
+export async function generateTopicPlan(
+    resumeText,
+    role,
+    difficulty
+) {
+    const response = await fetch(
+        "http://localhost:5000/api/interview/generate-topic-plan",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                resumeText,
+                role,
+                difficulty,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to generate topic plan");
     }
 
     return response.json();
