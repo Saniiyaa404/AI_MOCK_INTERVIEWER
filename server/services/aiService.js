@@ -7,6 +7,7 @@ const client = new openAI({
 async function testAI(){
     const response = await client.responses.create({
         model: "gpt-5.6-luna",
+        max_output_tokens: 1200,
         input: "Say hello in one short sentence"
     });
 
@@ -123,6 +124,7 @@ async function evaluateAnswer(
 ) {
     const response = await client.responses.create({
         model: "gpt-5.6-luna",
+        max_output_tokens: 400,
 
         input: `
 You are a technical interviewer evaluating a candidate's answer.
@@ -203,213 +205,106 @@ async function generateAdaptiveQuestion(
     topicPlan,
     coveredTopics
 ) {
-    const historyText = interviewHistory
-        .map((item, index) => `
-Question ${index + 1}:
-${item.question}
-
-Topic:
-${item.topic || "Unknown"}
-
-Candidate Answer:
-${item.answer}
-
-Evaluation:
-Technical Accuracy: ${item.evaluation.technicalAccuracy}/10
-Completeness: ${item.evaluation.completeness}/10
-Communication Clarity: ${item.evaluation.communicationClarity}/10
-Overall Score: ${item.evaluation.overallScore}/10
-
-Feedback:
-${item.evaluation.feedback}
-
-Improvement:
-${item.evaluation.improvement}
-        `)
-        .join("\n");
-
+    // Only send topic names and priorities.
+    // The detailed reasons are unnecessary for every question.
     const topicPlanText = topicPlan
         ? topicPlan.topics
-            .map((topic, index) =>
-                `${index + 1}. ${topic.name} (${topic.priority}) - ${topic.reason}`
+            .map(
+                (topic, index) =>
+                    `${index + 1}. ${topic.name} - ${topic.priority}`
             )
             .join("\n")
         : "No topic plan provided.";
 
-    const coveredTopicsText = coveredTopics &&
-        coveredTopics.length > 0
-        ? coveredTopics.join("\n")
-        : "No topics covered yet.";
+    // Only the last 3 questions are needed to avoid repetition.
+    const recentHistory = interviewHistory
+        .slice(-3)
+        .map((item, index) => `
+Question ${index + 1}: ${item.question}
+Topic: ${item.topic || "Unknown"}
+Score: ${item.evaluation.overallScore}/10
+`)
+        .join("\n");
+
+    // The latest evaluation is the most important information
+    // for deciding whether a follow-up is needed.
+    const latestItem =
+        interviewHistory.length > 0
+            ? interviewHistory[interviewHistory.length - 1]
+            : null;
+
+    const latestEvaluation = latestItem
+        ? `
+Latest Question:
+${latestItem.question}
+
+Latest Answer:
+${latestItem.answer}
+
+Latest Topic:
+${latestItem.topic || "Unknown"}
+
+Latest Evaluation:
+Technical Accuracy: ${latestItem.evaluation.technicalAccuracy}/10
+Completeness: ${latestItem.evaluation.completeness}/10
+Communication Clarity: ${latestItem.evaluation.communicationClarity}/10
+Overall Score: ${latestItem.evaluation.overallScore}/10
+
+Feedback:
+${latestItem.evaluation.feedback}
+
+Improvement:
+${latestItem.evaluation.improvement}
+`
+        : "No previous answer. This is the first question.";
+
+    const coveredTopicsText =
+        coveredTopics && coveredTopics.length > 0
+            ? coveredTopics.join("\n")
+            : "None";
 
     const response = await client.responses.create({
         model: "gpt-5.6-luna",
 
+        max_output_tokens: 300,
+
         input: `
 You are an adaptive technical interviewer.
 
-Candidate Role:
-${role}
+Role: ${role}
+Difficulty: ${difficulty}
 
-Interview Difficulty:
-${difficulty}
-
-Candidate Resume:
-${resumeText}
-
-Interview Topic Plan:
+Topic Plan:
 ${topicPlanText}
 
-Topics Already Covered:
+Adequately Covered Topics:
 ${coveredTopicsText}
 
-Previous Interview History:
-${historyText || "No previous questions. This is the first question."}
+Recent Questions:
+${recentHistory || "None"}
 
-Your task is to generate ONE new technical interview question.
+${latestEvaluation}
 
-Before generating the question, analyze:
+Generate ONE technical interview question.
 
-1. The candidate's resume.
-2. The selected job role.
-3. The interview topic plan.
-4. Topics that have already been covered.
-5. Previous questions and answers.
-6. Previous evaluation scores and weaknesses.
+Rules:
+1. If the latest overall score is below 7, prefer a focused follow-up
+   that tests the specific weakness from the latest feedback.
+2. If the latest score is 7 or higher, prefer a different uncovered topic.
+3. Do not repeat a previous question or the same specific concept.
+4. A topic with a score below 7 is NOT adequately covered.
+5. Do not ask more than two consecutive questions about the same
+   specific concept.
+6. Prefer breadth across the topic plan.
+7. Do not invent technologies outside the topic plan.
+8. Match the selected difficulty.
+9. Return the exact topic name from the topic plan.
+10. Return ONLY valid JSON.
 
-QUESTION SELECTION RULES:
-
-1. Prefer a high-priority topic from the topic plan that has NOT
-   already been adequately covered.
-
-2. 2. Do not repeat a technical concept unless the most recent answer
-   on that concept was weak and a focused follow-up is needed.
-
-3. If the most recent answer has a significant weakness, missing
-    concept, or incomplete explanation, prioritize ONE focused
-    follow-up question that directly investigates that weakness.
-
-4. If the most recent answer has an overall score of 7/10 or higher,
-   strongly prefer moving to a different technical topic.
-
-5. If the most recent answer is below 7/10, prioritize a focused
-    follow-up on the same technical topic, unless the topic is no
-    longer relevant to the selected role or resume.
-
-6. Do not repeat a previous question or ask a semantically equivalent
-   question.
-
-7. Do not focus the entire interview on the candidate's projects.
-
-8. Use projects for contextual questions, but also cover relevant:
-   - programming languages
-   - frameworks
-   - databases
-   - core CS concepts
-   - data structures and algorithms
-   - security
-   - testing
-   - system design
-   - networking
-   - deployment
-   - performance
-   when supported by the resume, role, or topic plan.
-
-9. Do not invent technologies that are unrelated to the resume,
-   selected role, or topic plan.
-
-10. Match the question to the selected difficulty.
-
-11. If the candidate demonstrates strong knowledge, gradually increase
-    depth or difficulty.
-
-12. The interview should progressively cover different relevant
-    technical areas.
-
-13. A topic should be considered adequately covered only when the
-    candidate has demonstrated sufficient understanding of that
-    topic.
-
-    A topic with an overall score below 7/10 must NOT be considered
-    adequately covered.
-
-    A weak topic should remain eligible for a focused follow-up.
-
-14. Prefer breadth across the topic plan unless a weak answer requires
-    a focused follow-up.
-
-15. When asking a follow-up question, use the Feedback and Improvement
-    from the previous evaluation to identify the specific missing
-    concept.
-
-    The follow-up should test that missing concept rather than simply
-    asking another broad question about the same topic.
-
-QUESTION SELECTION PRIORITY:
-
-Priority 1:
-If the most recent answer has an overall score below 7/10,
-PRIORITIZE a focused follow-up on the most recent topic that
-directly tests the weakness identified in the evaluation.
-
-Do not move to an unrelated topic unless:
-- the weakness cannot be meaningfully tested with another question, or
-- the topic has already received an adequate follow-up.
-
-Priority 2:
-If the most recent answer is 7/10 or higher, prefer a new
-high-priority topic that has not been adequately covered.
-
-Priority 3:
-If the most recent topic is weak but a follow-up would be
-redundant or would not meaningfully test the weakness, select
-another relevant uncovered topic.
-
-Priority 4:
-Never choose a previously adequately covered topic merely
-because it has high priority.
-
-A topic with a score below 7/10 must NOT be considered
-adequately covered.
-
-FOLLOW-UP LIMIT:
-
-Do not ask more than TWO consecutive questions that test the same
-specific technical concept.
-
-If the candidate remains weak after two attempts on the same concept,
-change the question to a different sub-concept
-or move to another relevant topic.
-
-A follow-up should deepen understanding, not simply rephrase the
-previous question.
-
-CONCEPT DIVERSITY:
-
-Do not treat an entire topic as a single concept. Identify the
-specific sub-concept being tested and avoid repeatedly testing the
-same sub-concept.
-
-For example, within JavaScript, distinguish between:
-- event loop
-- promises
-- async/await
-- closures
-- scope
-- prototypes
-- modules
-- error handling
-
-If one sub-concept has already been tested repeatedly, prefer another
-relevant sub-concept rather than generating another question about the
-same concept.
-
-OUTPUT FORMAT:
-
-Return ONLY valid JSON in this exact structure:
-
+Output:
 {
   "question": "One technical interview question",
-  "topic": "The topic being tested"
+  "topic": "Exact topic name"
 }
         `,
 
@@ -448,6 +343,7 @@ async function generateTopicPlan(
 ) {
     const response = await client.responses.create({
         model: "gpt-5.6-luna",
+        max_output_tokens: 1200,
 
         input: `
 You are an expert technical interview planner.
