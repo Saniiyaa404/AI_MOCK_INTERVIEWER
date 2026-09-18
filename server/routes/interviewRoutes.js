@@ -1,6 +1,7 @@
 const express = require("express");
 const { 
     testAI, 
+    testGemini,
     generateQuestion,
     evaluateAnswer,
     generateAdaptiveQuestion,
@@ -31,6 +32,59 @@ router.get("/test-ai", async(req, res) => {
 
         res.status(500).json({
             message: "AI request failed"
+        });
+    }
+});
+
+//testing gemini 
+router.get("/test-gemini", async (req, res) => {
+    try{
+        const result = await testGemini();
+        res.json({ result });
+    } catch (error) {
+        console.error("Gemini test error:", error);
+        res.status(500).json({
+            message: "Gemini test failed",
+            error: error.message
+        });
+    }
+});
+
+router.get("/test-question", async (req, res) => {
+    try {
+        const result = await generateQuestion(
+            "Candidate has experience with Node.js, Express.js, MongoDB and REST APIs.",
+            "Backend Developer",
+            "Medium",
+            {
+                topics: [
+                    {
+                        name: "Node.js",
+                        priority: "High",
+                        reason: "Important backend technology"
+                    },
+                    {
+                        name: "REST API Design",
+                        priority: "High",
+                        reason: "Important for backend development"
+                    },
+                    {
+                        name: "MongoDB",
+                        priority: "Medium",
+                        reason: "Database knowledge"
+                    }
+                ]
+            }
+        );
+
+        res.json(result);
+
+    } catch (error) {
+        console.error("Test question error:", error);
+
+        res.status(500).json({
+            message: "Question generation failed",
+            error: error.message
         });
     }
 });

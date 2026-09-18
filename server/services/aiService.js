@@ -4,6 +4,13 @@ const client = new openAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+//Gemini API client
+const { GoogleGenAI } = require("@google/genai");
+
+const geminiClient = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY
+});
+
 async function testAI(){
     const response = await client.responses.create({
         model: "gpt-5.6-luna",
@@ -12,6 +19,18 @@ async function testAI(){
     });
 
     return response.output_text;
+}
+
+//for testing Gemini API
+async function testGemini() {
+    const response = await geminiClient.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: "Say hello in one short sentence."
+    });
+
+    console.log("Gemini response:", response.text);
+
+    return response.text;
 }
 
 async function generateQuestion(
@@ -29,10 +48,7 @@ async function generateQuestion(
             .join("\n")
         : "No topic plan provided.";
 
-    const response = await client.responses.create({
-        model: "gpt-5.6-luna",
-
-        input: `
+    const prompt = `
 You are a technical interviewer.
 
 Generate ONE technical interview question for the candidate.
@@ -84,36 +100,48 @@ Rules:
 
 11. Return the selected topic using EXACTLY the same topic name
     provided in the Interview Topic Plan.
+`;
 
-Return the result using the required JSON structure.
-        `,
+    const response = await geminiClient.models.generateContent({
+        model: "gemini-3.5-flash-lite",
 
-        text: {
-            format: {
-                type: "json_schema",
-                name: "interview_question",
-                strict: true,
-                schema: {
-                    type: "object",
-                    properties: {
-                        question: {
-                            type: "string"
-                        },
-                        topic: {
-                            type: "string"
-                        }
+        contents: prompt,
+
+        config: {
+            responseMimeType: "application/json",
+
+            responseSchema: {
+                type: "object",
+
+                properties: {
+                    question: {
+                        type: "string"
                     },
-                    required: [
-                        "question",
-                        "topic"
-                    ],
-                    additionalProperties: false
-                }
-            }
+                    topic: {
+                        type: "string"
+                    }
+                },
+
+                required: [
+                    "question",
+                    "topic"
+                ]
+            },
+
+            maxOutputTokens: 500
         }
     });
 
-    return JSON.parse(response.output_text);
+    try {
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Invalid JSON received from Gemini:");
+        console.error(response.text);
+
+        throw new Error(
+            "Gemini returned an invalid interview question response."
+        );
+    }
 }
 
 async function evaluateAnswer(
@@ -122,11 +150,7 @@ async function evaluateAnswer(
     role,
     difficulty
 ) {
-    const response = await client.responses.create({
-        model: "gpt-5.6-luna",
-        max_output_tokens: 400,
-
-        input: `
+    const prompt = `
 You are a technical interviewer evaluating a candidate's answer.
 
 Candidate Role: ${role}
@@ -151,50 +175,71 @@ Scoring:
 - Do not give credit for information that was not provided.
 - Feedback should be concise and useful.
 - Improvement should identify one specific thing the candidate can improve.
-        `,
 
-        text: {
-            format: {
-                type: "json_schema",
-                name: "answer_evaluation",
-                strict: true,
-                schema: {
-                    type: "object",
-                    properties: {
-                        technicalAccuracy: {
-                            type: "number"
-                        },
-                        completeness: {
-                            type: "number"
-                        },
-                        communicationClarity: {
-                            type: "number"
-                        },
-                        overallScore: {
-                            type: "number"
-                        },
-                        feedback: {
-                            type: "string"
-                        },
-                        improvement: {
-                            type: "string"
-                        }
+Return ONLY the required JSON object.
+`;
+
+    const response = await geminiClient.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+
+        contents: prompt,
+
+        config: {
+            responseMimeType: "application/json",
+
+            responseSchema: {
+                type: "object",
+
+                properties: {
+                    technicalAccuracy: {
+                        type: "number"
                     },
-                    required: [
-                        "technicalAccuracy",
-                        "completeness",
-                        "communicationClarity",
-                        "overallScore",
-                        "feedback",
-                        "improvement"
-                    ],
-                    additionalProperties: false
-                }
-            }
+
+                    completeness: {
+                        type: "number"
+                    },
+
+                    communicationClarity: {
+                        type: "number"
+                    },
+
+                    overallScore: {
+                        type: "number"
+                    },
+
+                    feedback: {
+                        type: "string"
+                    },
+
+                    improvement: {
+                        type: "string"
+                    }
+                },
+
+                required: [
+                    "technicalAccuracy",
+                    "completeness",
+                    "communicationClarity",
+                    "overallScore",
+                    "feedback",
+                    "improvement"
+                ]
+            },
+
+            maxOutputTokens: 800
         }
     });
 
-    return JSON.parse(response.output_text);
+    try {
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Invalid JSON received from Gemini:");
+        console.error(response.text);
+
+        throw new Error(
+            "Gemini returned an invalid evaluation response."
+        );
+    }
 }
 
 async function generateAdaptiveQuestion(
@@ -206,7 +251,6 @@ async function generateAdaptiveQuestion(
     coveredTopics
 ) {
     // Only send topic names and priorities.
-    // The detailed reasons are unnecessary for every question.
     const topicPlanText = topicPlan
         ? topicPlan.topics
             .map(
@@ -216,7 +260,8 @@ async function generateAdaptiveQuestion(
             .join("\n")
         : "No topic plan provided.";
 
-    // Only the last 3 questions are needed to avoid repetition.
+    // Only send the last 3 questions to avoid repetition
+    // and reduce token usage.
     const recentHistory = interviewHistory
         .slice(-3)
         .map((item, index) => `
@@ -226,8 +271,7 @@ Score: ${item.evaluation.overallScore}/10
 `)
         .join("\n");
 
-    // The latest evaluation is the most important information
-    // for deciding whether a follow-up is needed.
+    // Latest evaluation is the most important information.
     const latestItem =
         interviewHistory.length > 0
             ? interviewHistory[interviewHistory.length - 1]
@@ -263,12 +307,7 @@ ${latestItem.evaluation.improvement}
             ? coveredTopics.join("\n")
             : "None";
 
-    const response = await client.responses.create({
-        model: "gpt-5.6-luna",
-
-        max_output_tokens: 300,
-
-        input: `
+    const prompt = `
 You are an adaptive technical interviewer.
 
 Role: ${role}
@@ -288,52 +327,71 @@ ${latestEvaluation}
 Generate ONE technical interview question.
 
 Rules:
+
 1. If the latest overall score is below 7, prefer a focused follow-up
    that tests the specific weakness from the latest feedback.
+
 2. If the latest score is 7 or higher, prefer a different uncovered topic.
+
 3. Do not repeat a previous question or the same specific concept.
+
 4. A topic with a score below 7 is NOT adequately covered.
+
 5. Do not ask more than two consecutive questions about the same
    specific concept.
+
 6. Prefer breadth across the topic plan.
+
 7. Do not invent technologies outside the topic plan.
+
 8. Match the selected difficulty.
+
 9. Return the exact topic name from the topic plan.
-10. Return ONLY valid JSON.
 
-Output:
-{
-  "question": "One technical interview question",
-  "topic": "Exact topic name"
-}
-        `,
+10. Return ONLY the required JSON object.
+`;
 
-        text: {
-            format: {
-                type: "json_schema",
-                name: "adaptive_interview_question",
-                strict: true,
-                schema: {
-                    type: "object",
-                    properties: {
-                        question: {
-                            type: "string"
-                        },
-                        topic: {
-                            type: "string"
-                        }
+    const response = await geminiClient.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+
+        contents: prompt,
+
+        config: {
+            responseMimeType: "application/json",
+
+            responseSchema: {
+                type: "object",
+
+                properties: {
+                    question: {
+                        type: "string"
                     },
-                    required: [
-                        "question",
-                        "topic"
-                    ],
-                    additionalProperties: false
-                }
-            }
+
+                    topic: {
+                        type: "string"
+                    }
+                },
+
+                required: [
+                    "question",
+                    "topic"
+                ]
+            },
+
+            maxOutputTokens: 300
         }
     });
 
-    return JSON.parse(response.output_text);
+    try {
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Invalid JSON received from Gemini:");
+        console.error(response.text);
+
+        throw new Error(
+            "Gemini returned an invalid adaptive question response."
+        );
+    }
 }
 
 async function generateTopicPlan(
@@ -341,11 +399,7 @@ async function generateTopicPlan(
     role,
     difficulty
 ) {
-    const response = await client.responses.create({
-        model: "gpt-5.6-luna",
-        max_output_tokens: 1200,
-
-        input: `
+    const prompt = `
 You are an expert technical interview planner.
 
 Create a dynamic technical interview topic plan for a candidate.
@@ -403,60 +457,79 @@ Important rules:
 9. Do not create a fixed universal list of topics. The topic plan
    must be generated dynamically from the candidate's information.
 
-Return the result using the required JSON structure.
-        `,
+Return ONLY the required JSON object.
+`;
 
-        text: {
-            format: {
-                type: "json_schema",
-                name: "interview_topic_plan",
-                strict: true,
-                schema: {
-                    type: "object",
-                    properties: {
-                        topics: {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                properties: {
-                                    name: {
-                                        type: "string"
-                                    },
-                                    priority: {
-                                        type: "string",
-                                        enum: [
-                                            "high",
-                                            "medium",
-                                            "low"
-                                        ]
-                                    },
-                                    reason: {
-                                        type: "string"
-                                    }
+    const response = await geminiClient.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+
+        contents: prompt,
+
+        config: {
+            responseMimeType: "application/json",
+
+            responseSchema: {
+                type: "object",
+
+                properties: {
+                    topics: {
+                        type: "array",
+
+                        items: {
+                            type: "object",
+
+                            properties: {
+                                name: {
+                                    type: "string"
                                 },
-                                required: [
-                                    "name",
-                                    "priority",
-                                    "reason"
-                                ],
-                                additionalProperties: false
-                            }
+
+                                priority: {
+                                    type: "string",
+                                    enum: [
+                                        "high",
+                                        "medium",
+                                        "low"
+                                    ]
+                                },
+
+                                reason: {
+                                    type: "string"
+                                }
+                            },
+
+                            required: [
+                                "name",
+                                "priority",
+                                "reason"
+                            ]
                         }
-                    },
-                    required: [
-                        "topics"
-                    ],
-                    additionalProperties: false
-                }
-            }
+                    }
+                },
+
+                required: [
+                    "topics"
+                ]
+            },
+
+            maxOutputTokens: 1200
         }
     });
 
-    return JSON.parse(response.output_text);
+    try {
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Invalid JSON received from Gemini:");
+        console.error(response.text);
+
+        throw new Error(
+            "Gemini returned an invalid topic plan response."
+        );
+    }
 }
 
 module.exports = {
     testAI,
+    testGemini,
     generateQuestion,
     evaluateAnswer,
     generateAdaptiveQuestion,
