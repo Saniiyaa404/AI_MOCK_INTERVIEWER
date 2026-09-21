@@ -33,6 +33,51 @@ async function testGemini() {
     return response.text;
 }
 
+function getDifficultyInstructions(difficulty) {
+    if (difficulty === "Easy") {
+        return `
+Difficulty Level: EASY
+
+The question should:
+- Test fundamental technical concepts.
+- Focus on basic definitions, core concepts, and simple practical understanding.
+- Require straightforward reasoning.
+- Avoid complex edge cases, advanced optimization, or system design.
+- Be answerable by a candidate with basic knowledge of the topic.
+`;
+    }
+
+    if (difficulty === "Medium") {
+        return `
+Difficulty Level: MEDIUM
+
+The question should:
+- Test practical and intermediate technical understanding.
+- Require the candidate to explain how concepts work and apply them.
+- Include moderate reasoning or implementation considerations.
+- May involve debugging, trade-offs, architecture decisions, or practical scenarios.
+- Should not require highly advanced optimization or deep system design.
+`;
+    }
+
+    if (difficulty === "Hard") {
+        return `
+Difficulty Level: HARD
+
+The question should:
+- Test deep technical understanding.
+- Require multi-step reasoning and strong practical knowledge.
+- Include complex scenarios, edge cases, trade-offs, optimization, architecture, or debugging.
+- Require the candidate to explain WHY a particular approach is appropriate.
+- Should distinguish an advanced candidate from someone with only basic knowledge.
+`;
+    }
+
+    return `
+Use the selected difficulty level exactly as provided.
+`;
+}
+
 async function generateQuestion(
     resumeText,
     role,
@@ -48,7 +93,10 @@ async function generateQuestion(
             .join("\n")
         : "No topic plan provided.";
 
-    const prompt = `
+const difficultyInstructions =
+    getDifficultyInstructions(difficulty);
+
+const prompt = `
 You are a technical interviewer.
 
 Generate ONE technical interview question for the candidate.
@@ -56,8 +104,10 @@ Generate ONE technical interview question for the candidate.
 Candidate Role:
 ${role}
 
-Difficulty:
+Selected Difficulty:
 ${difficulty}
+
+${difficultyInstructions}
 
 Candidate Resume:
 ${resumeText}
@@ -100,6 +150,10 @@ Rules:
 
 11. Return the selected topic using EXACTLY the same topic name
     provided in the Interview Topic Plan.
+
+12. Return the difficulty as exactly the selected difficulty level.
+
+13. Do not change the difficulty level.
 `;
 
     const response = await geminiClient.models.generateContent({
@@ -112,20 +166,19 @@ Rules:
 
             responseSchema: {
                 type: "object",
-
                 properties: {
                     question: {
                         type: "string"
                     },
                     topic: {
                         type: "string"
+                    },
+                    difficulty: {
+                        type: "string",
+                        enum: ["Easy", "Medium", "Hard"]
                     }
                 },
-
-                required: [
-                    "question",
-                    "topic"
-                ]
+                required: ["question", "topic", "difficulty"]
             },
 
             maxOutputTokens: 500
@@ -133,11 +186,18 @@ Rules:
     });
 
     try {
-        return JSON.parse(response.text);
+        const result = JSON.parse(response.text);
+
+        if (result.difficulty !== difficulty) {
+            throw new Error(
+                `Difficulty mismatch: expected ${difficulty}, got ${result.difficulty}`
+            );
+        }
+
+        return result;
     } catch (error) {
         console.error("Invalid JSON received from Gemini:");
         console.error(response.text);
-
         throw new Error(
             "Gemini returned an invalid interview question response."
         );
@@ -243,149 +303,133 @@ Return ONLY the required JSON object.
 }
 
 async function generateAdaptiveQuestion(
-    resumeText,
-    role,
-    difficulty,
-    interviewHistory,
-    topicPlan,
-    coveredTopics
-) {
-    // Only send topic names and priorities.
-    const topicPlanText = topicPlan
-        ? topicPlan.topics
-            .map(
-                (topic, index) =>
-                    `${index + 1}. ${topic.name} - ${topic.priority}`
-            )
-            .join("\n")
-        : "No topic plan provided.";
+        role,
+        difficulty,
+        selectedTopic,
+        latestItem = null
+    ) {
+        const followUpContext = latestItem
+            ? `
+    Previous Question:
+    ${latestItem.question}
 
-    // Only send the last 3 questions to avoid repetition
-    // and reduce token usage.
-    const recentHistory = interviewHistory
-        .slice(-3)
-        .map((item, index) => `
-Question ${index + 1}: ${item.question}
-Topic: ${item.topic || "Unknown"}
-Score: ${item.evaluation.overallScore}/10
-`)
-        .join("\n");
+    Candidate's Answer:
+    ${latestItem.answer}
 
-    // Latest evaluation is the most important information.
-    const latestItem =
-        interviewHistory.length > 0
-            ? interviewHistory[interviewHistory.length - 1]
-            : null;
+    Previous Evaluation:
+    Technical Accuracy: ${latestItem.evaluation.technicalAccuracy}/10
+    Completeness: ${latestItem.evaluation.completeness}/10
+    Communication Clarity: ${latestItem.evaluation.communicationClarity}/10
+    Overall Score: ${latestItem.evaluation.overallScore}/10
 
-    const latestEvaluation = latestItem
-        ? `
-Latest Question:
-${latestItem.question}
+    Feedback:
+    ${latestItem.evaluation.feedback}
 
-Latest Answer:
-${latestItem.answer}
+    Improvement:
+    ${latestItem.evaluation.improvement}
+    `
+            : "";
 
-Latest Topic:
-${latestItem.topic || "Unknown"}
-
-Latest Evaluation:
-Technical Accuracy: ${latestItem.evaluation.technicalAccuracy}/10
-Completeness: ${latestItem.evaluation.completeness}/10
-Communication Clarity: ${latestItem.evaluation.communicationClarity}/10
-Overall Score: ${latestItem.evaluation.overallScore}/10
-
-Feedback:
-${latestItem.evaluation.feedback}
-
-Improvement:
-${latestItem.evaluation.improvement}
-`
-        : "No previous answer. This is the first question.";
-
-    const coveredTopicsText =
-        coveredTopics && coveredTopics.length > 0
-            ? coveredTopics.join("\n")
-            : "None";
+    const difficultyInstructions =
+        getDifficultyInstructions(difficulty);
 
     const prompt = `
-You are an adaptive technical interviewer.
+    You are a technical interviewer.
 
-Role: ${role}
-Difficulty: ${difficulty}
+    Candidate Role:
+    ${role}
 
-Topic Plan:
-${topicPlanText}
+    Selected Interview Difficulty:
+    ${difficulty}
 
-Adequately Covered Topics:
-${coveredTopicsText}
+    ${difficultyInstructions}
 
-Recent Questions:
-${recentHistory || "None"}
+    Selected Interview Topic:
+    ${selectedTopic}
 
-${latestEvaluation}
+    Generate ONE technical interview question specifically about
+    the selected topic.
 
-Generate ONE technical interview question.
+    ${followUpContext}
 
-Rules:
+    Rules:
 
-1. If the latest overall score is below 7, prefer a focused follow-up
-   that tests the specific weakness from the latest feedback.
+    1. The question MUST be about the selected topic.
 
-2. If the latest score is 7 or higher, prefer a different uncovered topic.
+    2. Do NOT select or change the topic.
 
-3. Do not repeat a previous question or the same specific concept.
+    3. Do NOT introduce a different topic.
 
-4. A topic with a score below 7 is NOT adequately covered.
+    4. Match the question to the selected difficulty level.
 
-5. Do not ask more than two consecutive questions about the same
-   specific concept.
+    5. If previous question and evaluation are provided, use them
+    to create a meaningful follow-up question that addresses
+    the candidate's weakness.
 
-6. Prefer breadth across the topic plan.
+    6. If no previous question is provided, generate a normal
+    question about the selected topic.
 
-7. Do not invent technologies outside the topic plan.
+    7. Do not provide the answer.
 
-8. Match the selected difficulty.
+    8. Generate exactly ONE question.
 
-9. Return the exact topic name from the topic plan.
+    9. The question MUST match the selected difficulty level.
 
-10. Return ONLY the required JSON object.
-`;
+    10. Do not make the question easier or harder than the selected difficulty.
 
-    const response = await geminiClient.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+    11. Return the difficulty as exactly the selected difficulty level.
 
-        contents: prompt,
+    Return ONLY the required JSON object.
+    `;
 
-        config: {
-            responseMimeType: "application/json",
+        const response = await geminiClient.models.generateContent({
+            model: "gemini-3.5-flash-lite",
 
-            responseSchema: {
-                type: "object",
+            contents: prompt,
 
-                properties: {
-                    question: {
-                        type: "string"
+            config: {
+                responseMimeType: "application/json",
+
+                responseSchema: {
+                    type: "object",
+                    properties: {
+                        question: {
+                            type: "string"
+                        },
+                        topic: {
+                            type: "string"
+                        },
+                        difficulty: {
+                            type: "string",
+                            enum: ["Easy", "Medium", "Hard"]
+                        }
                     },
-
-                    topic: {
-                        type: "string"
-                    }
+                    required: ["question", "topic", "difficulty"]
                 },
 
-                required: [
-                    "question",
-                    "topic"
-                ]
-            },
-
-            maxOutputTokens: 300
-        }
-    });
+                maxOutputTokens: 300
+            }
+        });
 
     try {
-        return JSON.parse(response.text);
+        const result = JSON.parse(response.text);
+
+        if (result.difficulty !== difficulty) {
+            throw new Error(
+                `Difficulty mismatch: expected ${difficulty}, got ${result.difficulty}`
+            );
+        }
+
+        if (result.topic !== selectedTopic) {
+            throw new Error(
+                `Topic mismatch: expected ${selectedTopic}, got ${result.topic}`
+            );
+        }
+
+        return result;
+
     } catch (error) {
-        console.error("Invalid JSON received from Gemini:");
+        console.error("Invalid response received from Gemini:");
         console.error(response.text);
 
         throw new Error(

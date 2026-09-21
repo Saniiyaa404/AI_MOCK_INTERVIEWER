@@ -143,21 +143,17 @@ router.post("/evaluate-answer", async (req, res) => {
 router.post("/generate-adaptive-question", async (req, res) => {
     try {
         const {
-            resumeText,
             role,
             difficulty,
-            interviewHistory,
-            topicPlan,
-            coveredTopics
+            selectedTopic,
+            latestItem
         } = req.body;
 
         const question = await generateAdaptiveQuestion(
-            resumeText,
             role,
             difficulty,
-            interviewHistory,
-            topicPlan,
-            coveredTopics
+            selectedTopic,
+            latestItem
         );
 
         res.json(question);

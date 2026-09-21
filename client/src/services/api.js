@@ -100,12 +100,10 @@ export async function evaluateAnswer(
 }
 
 export async function generateAdaptiveQuestion(
-    resumeText,
     role,
     difficulty,
-    interviewHistory,
-    topicPlan,
-    coveredTopics
+    selectedTopic,
+    latestItem
 ) {
     const response = await fetch(
         "http://localhost:5000/api/interview/generate-adaptive-question",
@@ -115,12 +113,10 @@ export async function generateAdaptiveQuestion(
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                resumeText,
                 role,
                 difficulty,
-                interviewHistory,
-                topicPlan,
-                coveredTopics
+                selectedTopic,
+                latestItem
             }),
         }
     );

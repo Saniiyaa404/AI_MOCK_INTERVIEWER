@@ -19,6 +19,8 @@ function InterviewSetup({ resumeText }) {
   const [topicPlan, setTopicPlan] = useState(null);
   const [coveredTopics, setCoveredTopics] = useState([]);
   const [currentTopic, setCurrentTopic] = useState("");
+  const [topicQuestionCount, setTopicQuestionCount] = useState({});
+  const [followUpUsed, setFollowUpUsed] = useState(false);
 
 
   const handleStartInterview = async () => {
@@ -62,6 +64,11 @@ function InterviewSetup({ resumeText }) {
 
         setQuestion(data.question);
         setCurrentTopic(data.topic);
+
+        setTopicQuestionCount((previousCounts) => ({
+            ...previousCounts,
+            [data.topic]: (previousCounts[data.topic] || 0) + 1
+        }));
 
         setMessage("Interview started!");
     } catch (error) {
@@ -121,41 +128,157 @@ function InterviewSetup({ resumeText }) {
     }
   };
 
-  const handleNextQuestion = async () => {
-    if (questionNumber >= 10) {
-        setMessage("Interview completed!");
-        return;
-    }
+  const selectNextTopic = (
+        latestScore,
+        currentTopic,
+        topicPlan,
+        topicQuestionCount,
+        followUpUsed
+    ) => {
+        if (!topicPlan || !topicPlan.topics) {
+            return null;
+        }
 
-    try {
-        setMessage("Generating next question...");
-        
-        //instead of generate ques
-        const data = await generateAdaptiveQuestion(
-            resumeText,
-            role,
-            difficulty,
-            interviewHistory,
-            //new
-            topicPlan,
-            coveredTopics
-        );
+        const currentTopicCount =
+            topicQuestionCount[currentTopic] || 0;
 
-        setQuestion(data.question);
-        setCurrentTopic(data.topic);
+        // --------------------------------------------------
+        // 1. WEAK ANSWER → allow ONE follow-up
+        // --------------------------------------------------
+        if (
+            latestScore < 7 &&
+            !followUpUsed &&
+            currentTopicCount < 2
+        ) {
+            return {
+                topic: currentTopic,
+                isFollowUp: true
+            };
+        }
 
-        setQuestionNumber((previousNumber) => previousNumber + 1);
+        // --------------------------------------------------
+        // 2. GOOD ANSWER OR FOLLOW-UP ALREADY USED
+        //    → find a topic that has NEVER been asked
+        // --------------------------------------------------
+        const newTopic = topicPlan.topics.find((topic) => {
+            const count =
+                topicQuestionCount[topic.name] || 0;
 
-        // Clear previous answer and evaluation
-        setAnswer("");
-        setEvaluation(null);
+            return count === 0;
+        });
 
-        setMessage("Next question ready!");
-    } catch (error) {
-        console.error(error);
-        setMessage("Failed to generate next question.");
-    }
-  };
+        if (newTopic) {
+            return {
+                topic: newTopic.name,
+                isFollowUp: false
+            };
+        }
+
+        // --------------------------------------------------
+        // 3. No completely new topics remain.
+        //    Use a topic that has been asked ONCE.
+        // --------------------------------------------------
+        const reusableTopic = topicPlan.topics.find((topic) => {
+            const count =
+                topicQuestionCount[topic.name] || 0;
+
+            return count === 1;
+        });
+
+        if (reusableTopic) {
+            return {
+                topic: reusableTopic.name,
+                isFollowUp: false
+            };
+        }
+
+        // --------------------------------------------------
+        // 4. Every topic has already been asked twice.
+        // --------------------------------------------------
+        return null;
+    };
+
+    const handleNextQuestion = async () => {
+        if (questionNumber >= 10) {
+            setMessage("Interview completed!");
+            return;
+        }
+
+        try {
+            setMessage("Selecting next topic...");
+
+            // Get the latest evaluation
+            const latestItem =
+                interviewHistory[interviewHistory.length - 1];
+
+            const latestScore =
+                latestItem?.evaluation?.overallScore ?? 0;
+
+            // Application decides the next topic
+            const nextTopic = selectNextTopic(
+                latestScore,
+                currentTopic,
+                topicPlan,
+                topicQuestionCount,
+                followUpUsed
+            );
+
+            if (!nextTopic) {
+                setMessage("No more topics available.");
+                return;
+            }
+
+            // Track whether this next question is a follow-up
+            setFollowUpUsed(nextTopic.isFollowUp);
+
+            setMessage(
+                nextTopic.isFollowUp
+                    ? "Generating follow-up question..."
+                    : "Generating question on a new topic..."
+            );
+
+            // Gemini gets previous answer/evaluation
+            // ONLY when generating a follow-up question.
+            const latestItemForGemini =
+                nextTopic.isFollowUp ? latestItem : null;
+
+            // Gemini ONLY generates the question
+            // for the topic selected by the application.
+            const data = await generateAdaptiveQuestion(
+                role,
+                difficulty,
+                nextTopic.topic,
+                latestItemForGemini
+            );
+
+            setQuestion(data.question);
+
+            // Use the topic selected by the application,
+            // not Gemini's returned topic.
+            setCurrentTopic(nextTopic.topic);
+
+            // Increment question count for selected topic
+            setTopicQuestionCount((previousCounts) => ({
+                ...previousCounts,
+                [nextTopic.topic]:
+                    (previousCounts[nextTopic.topic] || 0) + 1
+            }));
+
+            setQuestionNumber(
+                (previousNumber) => previousNumber + 1
+            );
+
+            // Clear previous answer and evaluation
+            setAnswer("");
+            setEvaluation(null);
+
+            setMessage("Next question ready!");
+
+        } catch (error) {
+            console.error(error);
+            setMessage("Failed to generate next question.");
+        }
+    };
 
   return (
     <div>
