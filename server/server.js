@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("./db");
 
 console.log(
     "API key loaded:",

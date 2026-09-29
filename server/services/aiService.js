@@ -24,7 +24,7 @@ async function testAI(){
 //for testing Gemini API
 async function testGemini() {
     const response = await geminiClient.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-3.1-flash-lite",
         contents: "Say hello in one short sentence."
     });
 
@@ -76,6 +76,51 @@ The question should:
     return `
 Use the selected difficulty level exactly as provided.
 `;
+}
+
+async function generateContentWithRetry(request, maxRetries = 3) {
+    let lastError;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await geminiClient.models.generateContent(request);
+        } catch (error) {
+            lastError = error;
+
+            const statusCode =
+                error?.status ||
+                error?.code ||
+                error?.error?.code;
+
+            const isRetryable =
+                statusCode === 429 ||
+                statusCode === 500 ||
+                statusCode === 502 ||
+                statusCode === 503 ||
+                statusCode === 504;
+
+            if (!isRetryable || attempt === maxRetries) {
+                throw error;
+            }
+
+            const delay = Math.min(
+                1000 * Math.pow(2, attempt),
+                8000
+            );
+
+            console.log(
+                `Gemini request failed (${statusCode}). ` +
+                `Retrying in ${delay}ms... ` +
+                `Attempt ${attempt + 1}/${maxRetries}`
+            );
+
+            await new Promise((resolve) =>
+                setTimeout(resolve, delay)
+            );
+        }
+    }
+
+    throw lastError;
 }
 
 async function generateQuestion(
@@ -156,8 +201,8 @@ Rules:
 13. Do not change the difficulty level.
 `;
 
-    const response = await geminiClient.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+    const response = await generateContentWithRetry({
+        model: "gemini-3.1-flash-lite",
 
         contents: prompt,
 
@@ -239,8 +284,8 @@ Scoring:
 Return ONLY the required JSON object.
 `;
 
-    const response = await geminiClient.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+    const response = await generateContentWithRetry({
+        model: "gemini-3.1-flash-lite",
 
         contents: prompt,
 
@@ -382,9 +427,8 @@ async function generateAdaptiveQuestion(
     Return ONLY the required JSON object.
     `;
 
-        const response = await geminiClient.models.generateContent({
-            model: "gemini-3.5-flash-lite",
-
+        const response = await generateContentWithRetry({
+            model: "gemini-3.1-flash-lite",
             contents: prompt,
 
             config: {
@@ -504,8 +548,8 @@ Important rules:
 Return ONLY the required JSON object.
 `;
 
-    const response = await geminiClient.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+    const response = await generateWithRetry({
+        model: "gemini-3.1-flash-lite",
 
         contents: prompt,
 
@@ -568,6 +612,34 @@ Return ONLY the required JSON object.
         throw new Error(
             "Gemini returned an invalid topic plan response."
         );
+    }
+}
+
+async function generateWithRetry(request) {
+    const maxAttempts = 4;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await geminiClient.models.generateContent(request);
+        } catch (error) {
+            const status = error?.status || error?.code;
+
+            if (status !== 503 || attempt === maxAttempts) {
+                throw error;
+            }
+
+            const delay = 1000 * Math.pow(2, attempt - 1);
+
+            console.log(
+                `Gemini temporarily unavailable. ` +
+                `Retrying in ${delay}ms... ` +
+                `Attempt ${attempt}/${maxAttempts}`
+            );
+
+            await new Promise((resolve) =>
+                setTimeout(resolve, delay)
+            );
+        }
     }
 }
 

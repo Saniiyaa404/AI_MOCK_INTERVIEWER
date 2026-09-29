@@ -154,3 +154,115 @@ export async function generateTopicPlan(
 
     return response.json();
 }
+
+export async function startInterviewInDatabase(
+    role,
+    difficulty,
+    resumeId
+) {
+    const response = await fetch(
+        "http://localhost:5000/api/interview/start",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                role,
+                difficulty,
+                resumeId,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to create interview");
+    }
+
+    return response.json();
+}
+
+export async function saveQuestionToDatabase(
+    interviewId,
+    questionNumber,
+    topic,
+    difficulty,
+    isFollowUp,
+    questionText
+) {
+    const response = await fetch(
+        `http://localhost:5000/api/interview/${interviewId}/questions`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                questionNumber,
+                topic,
+                difficulty,
+                isFollowUp,
+                questionText,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to save question");
+    }
+
+    return response.json();
+}
+
+export async function saveAnswerToDatabase(
+    interviewId,
+    questionId,
+    answerText,
+    technicalAccuracy,
+    completeness,
+    communicationClarity,
+    overallScore,
+    feedback,
+    improvement
+) {
+    const response = await fetch(
+        `http://localhost:5000/api/interview/${interviewId}/answers`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                questionId,
+                answerText,
+                technicalAccuracy,
+                completeness,
+                communicationClarity,
+                overallScore,
+                feedback,
+                improvement,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to save answer");
+    }
+
+    return response.json();
+}
+
+export async function completeInterviewInDatabase(interviewId) {
+    const response = await fetch(
+        `http://localhost:5000/api/interview/${interviewId}/complete`,
+        {
+            method: "PATCH",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to complete interview");
+    }
+
+    return response.json();
+}

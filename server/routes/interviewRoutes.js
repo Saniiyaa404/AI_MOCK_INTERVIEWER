@@ -8,16 +8,167 @@ const {
     generateTopicPlan
  } = require("../services/aiService");
 
+const {
+    createInterview,
+    createQuestion,
+    createAnswer,
+    completeInterview
+} = require("../services/interviewDbService");
+
 const router = express.Router();
 
-router.post("/start", (req, res) => {
-    const { role, difficulty } = req.body;
+router.post("/start", async (req, res) => {
+    try {
+        const { role, difficulty, resumeId } = req.body;
 
-    res.json({
-        message: "Interview started",
-        role: role,
-        difficulty: difficulty
-    });
+        if (!role || !difficulty || !resumeId) {
+            return res.status(400).json({
+                message: "Role and difficulty are required."
+            });
+        }
+
+        const interview = await createInterview(
+            role,
+            difficulty,
+            resumeId
+        );
+
+        res.status(201).json({
+            message: "Interview started",
+            interview
+        });
+
+    } catch (error) {
+        console.error("CREATE INTERVIEW ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to create interview."
+        });
+    }
+});
+
+router.post("/:interviewId/questions", async (req, res) => {
+    try {
+        const { interviewId } = req.params;
+
+        const {
+            questionNumber,
+            topic,
+            difficulty,
+            isFollowUp,
+            questionText
+        } = req.body;
+
+        if (
+            !interviewId ||
+            !questionNumber ||
+            !topic ||
+            !difficulty ||
+            !questionText
+        ) {
+            return res.status(400).json({
+                message: "Missing required question data."
+            });
+        }
+
+        const question = await createQuestion(
+            interviewId,
+            questionNumber,
+            topic,
+            difficulty,
+            isFollowUp || false,
+            questionText
+        );
+
+        res.status(201).json({
+            message: "Question saved successfully",
+            question
+        });
+
+    } catch (error) {
+        console.error("CREATE QUESTION ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to save question."
+        });
+    }
+});
+
+router.post("/:interviewId/answers", async (req, res) => {
+    try {
+        const {
+            questionId,
+            answerText,
+            technicalAccuracy,
+            completeness,
+            communicationClarity,
+            overallScore,
+            feedback,
+            improvement
+        } = req.body;
+
+        if (
+            !questionId ||
+            !answerText ||
+            technicalAccuracy === undefined ||
+            completeness === undefined ||
+            communicationClarity === undefined ||
+            overallScore === undefined
+        ) {
+            return res.status(400).json({
+                message: "Missing required answer data."
+            });
+        }
+
+        const answer = await createAnswer(
+            questionId,
+            answerText,
+            technicalAccuracy,
+            completeness,
+            communicationClarity,
+            overallScore,
+            feedback,
+            improvement
+        );
+
+        res.status(201).json({
+            message: "Answer saved successfully",
+            answer
+        });
+
+    } catch (error) {
+        console.error("CREATE ANSWER ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to save answer."
+        });
+    }
+});
+
+router.patch("/:interviewId/complete", async (req, res) => {
+    try {
+        const { interviewId } = req.params;
+
+        if (!interviewId) {
+            return res.status(400).json({
+                message: "Interview ID is required."
+            });
+        }
+
+        const interview = await completeInterview(interviewId);
+
+        res.status(200).json({
+            message: "Interview completed successfully",
+            interview
+        });
+
+    } catch (error) {
+        console.error("COMPLETE INTERVIEW ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to complete interview."
+        });
+    }
 });
 
 router.get("/test-ai", async(req, res) => {

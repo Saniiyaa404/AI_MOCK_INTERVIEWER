@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs"); // file system
 const { PDFParse } = require("pdf-parse");
+const { createResume } = require("../services/interviewDbService");
 
 const router = express.Router();
 
@@ -12,6 +13,7 @@ const upload = multer({
 router.post("/upload", upload.single("resume"), async (req, res) => {
     try {
         const filePath = req.file.path;
+        const fileName = req.file.originalname;
 
         const pdfBuffer = fs.readFileSync(filePath);
 
@@ -21,15 +23,23 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
 
         await parser.destroy();
 
+        // Save resume in PostgreSQL
+        const resume = await createResume(
+            fileName,
+            pdfData.text
+        );
+
+        // Delete temporary uploaded PDF
         fs.unlinkSync(filePath);
 
         res.json({
             message: "Resume processed successfully!",
+            resumeId: resume.id,
             text: pdfData.text
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("RESUME UPLOAD ERROR:", error);
 
         res.status(500).json({
             message: "Failed to process resume."

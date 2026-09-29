@@ -18,7 +18,7 @@ function ResumeUploader({ onResumeExtracted }) {
     setMessage(data.message);
     setResumeText(data.text);
 
-    onResumeExtracted(data.text);
+    onResumeExtracted(data.text, data.resumeId);
     
   } catch (error) {
     console.error(error);

@@ -1,15 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { 
   startInterview, 
   generateQuestion,
   evaluateAnswer,
   generateAdaptiveQuestion,
-  generateTopicPlan
+  generateTopicPlan,
+  startInterviewInDatabase,
+  saveQuestionToDatabase,
+  saveAnswerToDatabase,
+  completeInterviewInDatabase
  } from "../services/api";
 
-function InterviewSetup({ resumeText }) {
+function InterviewSetup({ resumeText, resumeId }) {
   const [role, setRole] = useState("");
   const [difficulty, setDifficulty] = useState("Medium");
+  const [currentDifficulty, setCurrentDifficulty] = useState("");
   const [message, setMessage] = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -21,6 +26,9 @@ function InterviewSetup({ resumeText }) {
   const [currentTopic, setCurrentTopic] = useState("");
   const [topicQuestionCount, setTopicQuestionCount] = useState({});
   const [followUpUsed, setFollowUpUsed] = useState(false);
+  const [interviewId, setInterviewId] = useState(null);
+  const [questionId, setQuestionId] = useState(null);
+  const isGeneratingNextQuestionRef = useRef(false);
 
 
   const handleStartInterview = async () => {
@@ -34,18 +42,30 @@ function InterviewSetup({ resumeText }) {
         return;
     }
 
+    // Reset previous interview state
+    setQuestion("");
+    setAnswer("");
+    setEvaluation(null);
+    setQuestionNumber(1);
+
+    setInterviewHistory([]);
+    setTopicPlan(null);
+    setCoveredTopics([]);
+    setCurrentTopic("");
+
+    setTopicQuestionCount({});
+    setFollowUpUsed(false);
+    setCurrentDifficulty(difficulty);
+    setInterviewId(null);
+
     try {
-        // await startInterview(role, difficulty);
+        const dbData = await startInterviewInDatabase(
+            role,
+            difficulty,
+            resumeId
+        );
 
-        // const data = await generateQuestion(
-        //     resumeText,
-        //     role,
-        //     difficulty
-        // );
-
-        // setQuestion(data.question);
-
-        await startInterview(role, difficulty);
+        setInterviewId(dbData.interview.id);
 
         const plan = await generateTopicPlan(
             resumeText,
@@ -61,6 +81,17 @@ function InterviewSetup({ resumeText }) {
             difficulty,
             plan
         );
+
+        const savedQuestion = await saveQuestionToDatabase(
+            dbData.interview.id,
+            1,
+            data.topic,
+            difficulty,
+            false,
+            data.question
+        );
+
+        setQuestionId(savedQuestion.question.id);
 
         setQuestion(data.question);
         setCurrentTopic(data.topic);
@@ -87,15 +118,51 @@ function InterviewSetup({ resumeText }) {
 
     try {
         setMessage("Evaluating answer...");
+        
+        // Start timing the evaluation process
+        const evaluationStartTime = performance.now();
 
         const data = await evaluateAnswer(
             question,
             answer,
             role,
-            difficulty
+            currentDifficulty
+        );
+
+        // End timing the evaluation process
+        const evaluationEndTime = performance.now();
+
+        console.log(
+            `⏱️ Evaluation API took ${(
+                evaluationEndTime - evaluationStartTime
+            ).toFixed(0)} ms`
         );
 
         setEvaluation(data.evaluation);
+        
+        // Start timing the database save process
+        const dbStartTime = performance.now();
+
+        await saveAnswerToDatabase(
+            interviewId,
+            questionId,
+            answer,
+            data.evaluation.technicalAccuracy,
+            data.evaluation.completeness,
+            data.evaluation.communicationClarity,
+            data.evaluation.overallScore,
+            data.evaluation.feedback,
+            data.evaluation.improvement
+        );
+
+        // End timing the database save process
+        const dbEndTime = performance.now();
+
+        console.log(
+            `⏱️ Answer DB save took ${(
+                dbEndTime - dbStartTime
+            ).toFixed(0)} ms`
+        );
         
         //save question, topic, answer and evaluation
         setInterviewHistory((previousHistory) => [
@@ -103,6 +170,8 @@ function InterviewSetup({ resumeText }) {
           {
             question: question,
             topic: currentTopic,
+            difficulty: currentDifficulty,
+            isFollowUp: followUpUsed,
             answer: answer,
             evaluation: data.evaluation
           }
@@ -128,7 +197,7 @@ function InterviewSetup({ resumeText }) {
     }
   };
 
-  const selectNextTopic = (
+    const selectNextTopic = (
         latestScore,
         currentTopic,
         topicPlan,
@@ -142,9 +211,7 @@ function InterviewSetup({ resumeText }) {
         const currentTopicCount =
             topicQuestionCount[currentTopic] || 0;
 
-        // --------------------------------------------------
         // 1. WEAK ANSWER → allow ONE follow-up
-        // --------------------------------------------------
         if (
             latestScore < 7 &&
             !followUpUsed &&
@@ -156,63 +223,164 @@ function InterviewSetup({ resumeText }) {
             };
         }
 
-        // --------------------------------------------------
-        // 2. GOOD ANSWER OR FOLLOW-UP ALREADY USED
-        //    → find a topic that has NEVER been asked
-        // --------------------------------------------------
-        const newTopic = topicPlan.topics.find((topic) => {
+        // 2. Find topics that have NEVER been asked
+        const newTopics = topicPlan.topics.filter((topic) => {
             const count =
                 topicQuestionCount[topic.name] || 0;
 
             return count === 0;
         });
 
-        if (newTopic) {
+        // 3. Among new topics, prioritize HIGH → MEDIUM → LOW
+        if (newTopics.length > 0) {
+            const priorityOrder = {
+                high: 1,
+                medium: 2,
+                low: 3
+            };
+
+            newTopics.sort(
+                (a, b) =>
+                    priorityOrder[a.priority] -
+                    priorityOrder[b.priority]
+            );
+
             return {
-                topic: newTopic.name,
+                topic: newTopics[0].name,
                 isFollowUp: false
             };
         }
 
-        // --------------------------------------------------
-        // 3. No completely new topics remain.
-        //    Use a topic that has been asked ONCE.
-        // --------------------------------------------------
-        const reusableTopic = topicPlan.topics.find((topic) => {
+        // 4. No new topics remain.
+        //    Reuse topics that have been asked exactly once.
+        const reusableTopics = topicPlan.topics.filter((topic) => {
             const count =
                 topicQuestionCount[topic.name] || 0;
 
             return count === 1;
         });
 
-        if (reusableTopic) {
+        // 5. Prioritize reusable topics by priority
+        if (reusableTopics.length > 0) {
+            const priorityOrder = {
+                high: 1,
+                medium: 2,
+                low: 3
+            };
+
+            reusableTopics.sort(
+                (a, b) =>
+                    priorityOrder[a.priority] -
+                    priorityOrder[b.priority]
+            );
+
             return {
-                topic: reusableTopic.name,
+                topic: reusableTopics[0].name,
                 isFollowUp: false
             };
         }
 
-        // --------------------------------------------------
-        // 4. Every topic has already been asked twice.
-        // --------------------------------------------------
+        // 6. Every topic has already been asked twice
         return null;
     };
 
+    const selectNextDifficulty = (
+        latestScore,
+        currentDifficulty,
+        baselineDifficulty,
+        currentQuestionWasFollowUp
+    ) => {
+
+        // If the current question was a follow-up,
+        // the next new topic returns to baseline.
+        if (currentQuestionWasFollowUp) {
+            return baselineDifficulty;
+        }
+
+        // If the current question was already an
+        // adaptive difficulty question (different from baseline),
+        // do NOT let its score propagate further.
+        // Return to baseline for the next new topic.
+        if (currentDifficulty !== baselineDifficulty) {
+            return baselineDifficulty;
+        }
+
+        // From this point onward, the current question
+        // is a baseline-difficulty question.
+
+        // Score below 4 → one level below baseline
+        if (latestScore < 4) {
+
+            if (baselineDifficulty === "Hard") {
+                return "Medium";
+            }
+
+            if (baselineDifficulty === "Medium") {
+                return "Easy";
+            }
+
+            return "Easy";
+        }
+
+        // Score 4 to 8.5 → stay at baseline
+        if (latestScore <= 8.5) {
+            return baselineDifficulty;
+        }
+
+        // Score above 8.5 → one level above baseline
+        if (baselineDifficulty === "Easy") {
+            return "Medium";
+        }
+
+        if (baselineDifficulty === "Medium") {
+            return "Hard";
+        }
+
+        return "Hard";
+    };
+
+
     const handleNextQuestion = async () => {
+
+        if (isGeneratingNextQuestionRef.current) {
+            return;
+        }
+
+        isGeneratingNextQuestionRef.current = true;
+        
         if (questionNumber >= 10) {
-            setMessage("Interview completed!");
+            try {
+                setMessage("Completing interview...");
+
+                await completeInterviewInDatabase(interviewId);
+
+                setMessage("Interview completed!");
+            } catch (error) {
+                console.error(error);
+                setMessage("Failed to complete interview.");
+            } finally {
+                isGeneratingNextQuestionRef.current = false;
+            }
+
+            return;
+        }
+
+        if (!evaluation) {
+            setMessage("Please submit and evaluate your answer first.");
             return;
         }
 
         try {
             setMessage("Selecting next topic...");
 
-            // Get the latest evaluation
+            // Use the evaluation of the currently answered question
+            const latestScore =
+                evaluation?.overallScore ?? 0;
+
             const latestItem =
                 interviewHistory[interviewHistory.length - 1];
 
-            const latestScore =
-                latestItem?.evaluation?.overallScore ?? 0;
+            const currentQuestionWasFollowUp = followUpUsed;
 
             // Application decides the next topic
             const nextTopic = selectNextTopic(
@@ -227,6 +395,23 @@ function InterviewSetup({ resumeText }) {
                 setMessage("No more topics available.");
                 return;
             }
+            
+            //debugging and testing
+            console.log("========== NEXT QUESTION DEBUG ==========");
+            console.log("Current Topic:", currentTopic);
+            console.log("Current Topic Count:", topicQuestionCount[currentTopic] || 0);
+            console.log("Latest Score:", latestScore);
+            console.log("Follow-up Used:", followUpUsed);
+            console.log("Topic Question Counts:", topicQuestionCount);
+            console.log("Selected Next Topic:", nextTopic);
+            console.log("=========================================");
+
+            const nextDifficulty = selectNextDifficulty(
+                latestScore,
+                currentDifficulty,
+                difficulty,
+                currentQuestionWasFollowUp
+            );
 
             // Track whether this next question is a follow-up
             setFollowUpUsed(nextTopic.isFollowUp);
@@ -242,20 +427,68 @@ function InterviewSetup({ resumeText }) {
             const latestItemForGemini =
                 nextTopic.isFollowUp ? latestItem : null;
 
+            // Start timing the question generation process
+            const questionStartTime = performance.now();
+
             // Gemini ONLY generates the question
             // for the topic selected by the application.
             const data = await generateAdaptiveQuestion(
                 role,
-                difficulty,
+                nextDifficulty,
                 nextTopic.topic,
                 latestItemForGemini
             );
+            
+            // End timing the question generation process
+            const questionEndTime = performance.now();
+
+            console.log(
+                `⏱️ Question generation API took ${(
+                    questionEndTime - questionStartTime
+                ).toFixed(0)} ms`
+            );
+
+            //save generated question to database
+            const nextQuestionNumber = questionNumber + 1;
+
+            // Start timing the question database save process
+            const questionDbStartTime = performance.now();
+
+            const savedQuestion = await saveQuestionToDatabase(
+                interviewId,
+                nextQuestionNumber,
+                nextTopic.topic,
+                nextDifficulty,
+                nextTopic.isFollowUp,
+                data.question
+            );
+
+            // End timing the question database save process
+            const questionDbEndTime = performance.now();
+
+            console.log(
+                `⏱️ Question DB save took ${(
+                    questionDbEndTime - questionDbStartTime
+                ).toFixed(0)} ms`
+            );
+
+            setQuestionId(savedQuestion.question.id);
+                        
+            //debugging and testing
+            console.log("========== GEMINI RESPONSE ==========");
+            console.log("Application Selected Topic:", nextTopic.topic);
+            console.log("Application Selected Difficulty:", nextDifficulty);
+            console.log("Gemini Returned Topic:", data.topic);
+            console.log("Gemini Returned Difficulty:", data.difficulty);
+            console.log("Gemini Question:", data.question);
+            console.log("====================================");
 
             setQuestion(data.question);
 
             // Use the topic selected by the application,
             // not Gemini's returned topic.
             setCurrentTopic(nextTopic.topic);
+            setCurrentDifficulty(nextDifficulty);
 
             // Increment question count for selected topic
             setTopicQuestionCount((previousCounts) => ({
@@ -277,6 +510,8 @@ function InterviewSetup({ resumeText }) {
         } catch (error) {
             console.error(error);
             setMessage("Failed to generate next question.");
+        } finally {
+            isGeneratingNextQuestionRef.current = false;
         }
     };
 
@@ -334,49 +569,58 @@ function InterviewSetup({ resumeText }) {
       
       {question && (
         <div>
-          <h3>
-            Question {questionNumber} of 10
-          </h3>
+            <h3>
+                Question {questionNumber} of 10
+            </h3>
 
-          //temporary testing
-          <p>
-            <strong>Topic:</strong> {currentTopic}
-          </p>
+            <p>
+                <strong>Topic:</strong> {currentTopic}
+            </p>
 
-          {coveredTopics.length > 0 && (
-            <div>
-                <h3>Covered Topics</h3>
+            <p>
+                <strong>Difficulty:</strong> {currentDifficulty}
+            </p>
 
-                <ul>
-                    {coveredTopics.map((topic, index) => (
-                        <li key={index}>{topic}</li>
-                    ))}
-                </ul>
-            </div>
-          )}
+            <p>
+                <strong>Type:</strong>{" "}
+                {followUpUsed ? "Follow-up" : "Normal"}
+            </p>
 
-          <p>{question}</p>
+            {coveredTopics.filter(Boolean).length > 0 && (
+                <div>
+                    <h3>Covered Topics</h3>
 
-          <h3>Your Answer</h3>
-          <textarea
-              rows="6"
-              value={answer}
-              onChange={(event) => setAnswer(event.target.value)}
-              placeholder="Type your answer here..."
-          />
+                    <ul>
+                        {coveredTopics
+                            .filter(Boolean)
+                            .map((topic, index) => (
+                                <li key={index}>{topic}</li>
+                            ))}
+                    </ul>
+                </div>
+            )}
 
-          <br />
+            <p>{question}</p>
 
-          <button onClick={handleSubmitAnswer}>
-              Submit Answer
-          </button>
+            <h3>Your Answer</h3>
+            <textarea
+                rows="6"
+                value={answer}
+                onChange={(event) => setAnswer(event.target.value)}
+                placeholder="Type your answer here..."
+            />
 
-          {evaluation && (
-            <button onClick={handleNextQuestion}>
-              Next Question
+            <br />
+
+            <button onClick={handleSubmitAnswer}>
+                Submit Answer
             </button>
-          )}
 
+            {evaluation && (
+                <button onClick={handleNextQuestion}>
+                Next Question
+                </button>
+            )}
         </div>
       )}
 
@@ -439,6 +683,11 @@ function InterviewSetup({ resumeText }) {
                   <p>
                       <strong>Overall Score:</strong>{" "}
                       {item.evaluation.overallScore}/10
+                  </p>
+
+                  <p>
+                       <strong>Type:</strong>{" "}
+                       {item.isFollowUp ? "Follow-up" : "Normal"}
                   </p>
 
                   <hr />
