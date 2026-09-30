@@ -230,23 +230,16 @@ Database Structure
 
 The application uses four main tables:
 
-resumes
+1. resumes - Stores uploaded resume information and extracted resume text.
 
-Stores uploaded resume information and extracted resume text.
+2. interviews - Stores interview configuration and status.
 
-interviews
+3. questions - Stores generated interview questions, topics, difficulty and question type.
 
-Stores interview configuration and status.
-
-questions
-
-Stores generated interview questions, topics, difficulty and question type.
-
-answers
-
-Stores candidate answers and their evaluation scores.
+4. answers - Stores candidate answers and their evaluation scores.
 
 Relationship:
+```text
 
 Resume
    │
@@ -263,6 +256,7 @@ Interview
    │
    └── ...
 Scoring System
+```
 
 Each answer receives three scores from 0–10:
 
@@ -307,6 +301,8 @@ so the system does not continuously increase or decrease difficulty.
 
 Project Structure
 
+```text
+
 AI_MOCK_INTERVIEWER/
 │
 ├── client/
@@ -338,7 +334,7 @@ AI_MOCK_INTERVIEWER/
 │
 ├── .gitignore
 └── README.md
-
+```
 
 Getting Started
 1. Clone the repository
