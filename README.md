@@ -266,16 +266,11 @@ Communication Clarity
 
 The question-level overall score is calculated as:
 
-Overall Score =
-(Technical Accuracy
- + Completeness
- + Communication Clarity) / 3
+Overall Score = (Technical Accuracy + Completeness  + Communication Clarity) / 3
 
 The final interview score is calculated from the average overall score of the answered questions.
 
-Adaptive Difficulty Logic
-
-The selected difficulty acts as the interview's baseline.
+Adaptive Difficulty Logic: The selected difficulty acts as the interview's baseline.
 
 The system temporarily adjusts difficulty according to performance:
 
@@ -338,39 +333,45 @@ AI_MOCK_INTERVIEWER/
 
 Getting Started
 1. Clone the repository
+```text
 git clone https://github.com/Saniiyaa404/AI_MOCK_INTERVIEWER
 cd AI_MOCK_INTERVIEWER
-2. Install frontend dependencies
+```
+3. Install frontend dependencies
+```
 cd client
 npm install
-3. Install backend dependencies
+```
+5. Install backend dependencies
+```
 cd ../server
 npm install
-4. Configure environment variables
-
+```
+7. Configure environment variables
+```
 Create a .env file inside the server directory.
 
 GEMINI_API_KEY=your_gemini_api_key
 DATABASE_URL=your_supabase_postgresql_connection_string
 
 Do not commit the .env file to GitHub.
-
+```
 5. Start the backend
-
+```
 From the server directory:
 
 npm run dev
+```
 6. Start the frontend
-
+```
 Open another terminal:
 
 cd client
 npm run dev
-
+```
 The frontend will be available at the local Vite development URL.
 
 Current Scope
-
 This project currently focuses on the core technical mock interview experience:
 
 Resume processing
@@ -384,7 +385,6 @@ Interview results dashboard
 Additional features such as voice-based interviews, live coding and authentication can be added in future iterations.
 
 Future Improvements
-
 Potential future enhancements include:
 
 Voice-based interview interaction
