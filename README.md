@@ -372,29 +372,44 @@ npm run dev
 The frontend will be available at the local Vite development URL.
 
 Current Scope
+
 This project currently focuses on the core technical mock interview experience:
 
-Resume processing
-AI topic planning
-Adaptive question generation
-Adaptive difficulty
-AI answer evaluation
-PostgreSQL persistence
-Interview results dashboard
++ Resume processing
+
++ AI topic planning
+
++ Adaptive question generation
+
++ Adaptive difficulty
+  
++ AI answer evaluation
+  
++ PostgreSQL persistence
+  
++ Interview results dashboard
 
 Additional features such as voice-based interviews, live coding and authentication can be added in future iterations.
 
 Future Improvements
+
 Potential future enhancements include:
 
-Voice-based interview interaction
-Speech-to-text answer processing
-Live coding environment
-Authentication and user profiles
-Interview history
-Performance tracking across multiple interviews
-More advanced analytics
-Production deployment
++ Voice-based interview interaction
+  
++ Speech-to-text answer processing
+  
++ Live coding environment
+  
++ Authentication and user profiles
+  
++ Interview history
+  
++ Performance tracking across multiple interviews
+  
++ More advanced analytics
+  
++ Production deployment
 
 
 Author-
