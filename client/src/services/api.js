@@ -1,10 +1,12 @@
+const API_URL = import.meta.env.VITE_API_URL;
+
 export async function uploadResume(file) {
   const formData = new FormData();
 
   formData.append("resume", file);
 
   const response = await fetch(
-    "http://localhost:5000/api/resume/upload",
+    `${API_URL}/api/resume/upload`,
     {
       method: "POST",
       body: formData,
@@ -21,7 +23,7 @@ export async function uploadResume(file) {
 
 export async function startInterview(role, difficulty) {
   const response = await fetch(
-    "http://localhost:5000/api/interview/start",
+    `${API_URL}/api/interview/start`,
     {
       method: "POST",
       headers: {
@@ -48,7 +50,7 @@ export async function generateQuestion(
     topicPlan
 ) {
     const response = await fetch(
-        "http://localhost:5000/api/interview/generate-question",
+        `${API_URL}/api/interview/generate-question`,
         {
             method: "POST",
             headers: {
@@ -77,7 +79,7 @@ export async function evaluateAnswer(
     difficulty
 ) {
     const response = await fetch(
-        "http://localhost:5000/api/interview/evaluate-answer",
+        `${API_URL}/api/interview/evaluate-answer`,
         {
             method: "POST",
             headers: {
@@ -106,7 +108,7 @@ export async function generateAdaptiveQuestion(
     latestItem
 ) {
     const response = await fetch(
-        "http://localhost:5000/api/interview/generate-adaptive-question",
+        `${API_URL}/api/interview/generate-adaptive-question`,
         {
             method: "POST",
             headers: {
@@ -134,7 +136,7 @@ export async function generateTopicPlan(
     difficulty
 ) {
     const response = await fetch(
-        "http://localhost:5000/api/interview/generate-topic-plan",
+        `${API_URL}/api/interview/generate-topic-plan`,
         {
             method: "POST",
             headers: {
@@ -161,7 +163,7 @@ export async function startInterviewInDatabase(
     resumeId
 ) {
     const response = await fetch(
-        "http://localhost:5000/api/interview/start",
+        `${API_URL}/api/interview/start`,
         {
             method: "POST",
             headers: {
@@ -191,7 +193,7 @@ export async function saveQuestionToDatabase(
     questionText
 ) {
     const response = await fetch(
-        `http://localhost:5000/api/interview/${interviewId}/questions`,
+        `${API_URL}/api/interview/${interviewId}/questions`,
         {
             method: "POST",
             headers: {
@@ -226,7 +228,7 @@ export async function saveAnswerToDatabase(
     improvement
 ) {
     const response = await fetch(
-        `http://localhost:5000/api/interview/${interviewId}/answers`,
+        `${API_URL}/api/interview/${interviewId}/answers`,
         {
             method: "POST",
             headers: {
@@ -254,7 +256,7 @@ export async function saveAnswerToDatabase(
 
 export async function completeInterviewInDatabase(interviewId) {
     const response = await fetch(
-        `http://localhost:5000/api/interview/${interviewId}/complete`,
+        `${API_URL}/api/interview/${interviewId}/complete`,
         {
             method: "PATCH",
         }
@@ -269,7 +271,7 @@ export async function completeInterviewInDatabase(interviewId) {
 
 export async function getInterviewHistory() {
     const response = await fetch(
-        "http://localhost:5000/api/interview/history"
+        `${API_URL}/api/interview/history`
     );
 
     if (!response.ok) {

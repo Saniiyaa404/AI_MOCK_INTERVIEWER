@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "./ResultsDashboard.css";
@@ -12,7 +13,7 @@ function ResultsDashboard({ interviewId }) {
         const fetchResults = async () => {
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/interview/${interviewId}/results`
+                    `${API_URL}/api/interview/${interviewId}/results`
                 );
 
                 if (!response.ok) {
