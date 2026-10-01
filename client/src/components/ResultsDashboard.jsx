@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import "./ResultsDashboard.css";
 
 function ResultsDashboard({ interviewId }) {
@@ -152,7 +153,9 @@ function ResultsDashboard({ interviewId }) {
                         </span>
 
                         <span className="hero-tag completed-tag">
-                            ✓ Completed
+                            {interview.status === "completed"
+                                ? "✓ Completed"
+                                : "Not completed"}
                         </span>
 
                     </div>
@@ -655,6 +658,16 @@ function ResultsDashboard({ interviewId }) {
                 <strong>
                     Good luck with your future interviews! 🚀
                 </strong>
+
+                <div className="footer-actions">
+                    <Link to="/setup" className="btn btn-primary">
+                        Start new interview
+                    </Link>
+
+                    <Link to="/history" className="btn">
+                        View history
+                    </Link>
+                </div>
 
             </section>
 

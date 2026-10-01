@@ -13,7 +13,8 @@ const {
     createQuestion,
     createAnswer,
     completeInterview,
-    getInterviewResults
+    getInterviewResults,
+    getInterviewHistory
 } = require("../services/interviewDbService");
 
 const router = express.Router();
@@ -168,6 +169,22 @@ router.patch("/:interviewId/complete", async (req, res) => {
 
         res.status(500).json({
             message: "Failed to complete interview."
+        });
+    }
+});
+
+// List of all interviews for the History page
+router.get("/history", async (req, res) => {
+    try {
+        const interviews = await getInterviewHistory();
+
+        res.json({ interviews });
+
+    } catch (error) {
+        console.error("GET INTERVIEW HISTORY ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to fetch interview history."
         });
     }
 });

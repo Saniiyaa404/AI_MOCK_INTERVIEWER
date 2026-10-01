@@ -266,3 +266,15 @@ export async function completeInterviewInDatabase(interviewId) {
 
     return response.json();
 }
+
+export async function getInterviewHistory() {
+    const response = await fetch(
+        "http://localhost:5000/api/interview/history"
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to load interview history");
+    }
+
+    return response.json();
+}

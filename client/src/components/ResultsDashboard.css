@@ -1,5 +1,5 @@
 .results-page {
-    min-height: 100vh;
+    min-height: calc(100vh - var(--nav-h));
     padding: 42px;
     background: #0b0f14;
     color: #f1f5f9;
@@ -996,4 +996,12 @@
     .section-heading h2 {
         font-size: 20px;
     }
+}
+
+.footer-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
 }

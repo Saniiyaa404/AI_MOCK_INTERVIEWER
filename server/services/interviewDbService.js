@@ -180,6 +180,31 @@ async function createResume(fileName, resumeText) {
     return result.rows[0];
 }
 
+async function getInterviewHistory() {
+    const query = `
+        SELECT
+            i.id,
+            i.role,
+            i.baseline_difficulty,
+            i.status,
+            i.started_at,
+            i.completed_at,
+            COUNT(DISTINCT q.id)::int AS total_questions,
+            COUNT(DISTINCT a.id)::int AS answered_questions,
+            ROUND(AVG(a.overall_score)::numeric, 2) AS overall_score
+        FROM interviews i
+        LEFT JOIN questions q ON q.interview_id = i.id
+        LEFT JOIN answers a ON a.question_id = q.id
+        GROUP BY i.id
+        ORDER BY i.started_at DESC
+        LIMIT 100;
+    `;
+
+    const result = await pool.query(query);
+
+    return result.rows;
+}
+
 async function getInterviewResults(interviewId) {
     const interviewQuery = `
         SELECT
@@ -289,5 +314,6 @@ module.exports = {
     createAnswer,
     completeInterview,
     createResume,
-    getInterviewResults
+    getInterviewResults,
+    getInterviewHistory
 };
