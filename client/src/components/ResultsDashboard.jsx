@@ -512,6 +512,26 @@ function ResultsDashboard({ interviewId }) {
                                 {isOpen && (
                                     <div className="question-details">
 
+                                        {question.question_text && (
+                                            <p className="question-text">
+                                                {question.question_text}
+                                            </p>
+                                        )}
+
+                                        {question.answer_text && (
+                                            <details className="answer-toggle">
+
+                                                <summary>
+                                                    Your Answer
+                                                </summary>
+
+                                                <div className="answer-box">
+                                                    {question.answer_text}
+                                                </div>
+
+                                            </details>
+                                        )}
+
                                         {question.feedback && (
                                             <div className="feedback-block">
 

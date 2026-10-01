@@ -1005,3 +1005,67 @@
     gap: 12px;
     margin-top: 22px;
 }
+
+
+/* Question text + collapsible answer (inside expanded question card) */
+.question-text {
+    margin: 0;
+    max-width: 80ch;
+
+    color: #e2e8f0;
+    font-size: 14.5px;
+    font-weight: 500;
+    line-height: 1.6;
+    text-align: left;
+}
+
+.answer-toggle {
+    border: 1px solid #29323b;
+    border-radius: 11px;
+    background: #10151a;
+}
+
+.answer-toggle summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+
+    color: #2dd4bf;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+    list-style: none;
+}
+
+.answer-toggle summary::-webkit-details-marker {
+    display: none;
+}
+
+.answer-toggle summary::after {
+    content: "⌄";
+    color: #7f8b98;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.answer-toggle[open] summary::after {
+    content: "⌃";
+}
+
+.answer-box {
+    margin: 0 16px 16px;
+    padding: 14px 16px;
+
+    border: 1px solid #29323b;
+    border-radius: 9px;
+    background: #151a20;
+
+    color: #aeb8c2;
+    font-size: 13px;
+    line-height: 1.65;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

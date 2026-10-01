@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useInterview } from "../context/InterviewContext";
+import { useSpeechToText } from "../hooks/useSpeechToText";
 import {
   evaluateAnswer,
   generateAdaptiveQuestion,
@@ -110,6 +111,20 @@ function InterviewPage() {
 
   const notify = (text, tone = "info") => setNotice({ text, tone });
   const isLast = questionNumber >= TOTAL_QUESTIONS;
+
+  /* ----- voice input: spoken phrases are appended to the answer ----- */
+  const speech = useSpeechToText({
+    onFinalText: (text) =>
+      setAnswer((previous) => (previous.trim() ? `${previous.trimEnd()} ${text}` : text))
+  });
+
+  const answerLocked = busy !== null || Boolean(evaluation);
+  const stopSpeech = speech.stop;
+
+  // Stop the microphone as soon as the answer is submitted or the page is busy.
+  useEffect(() => {
+    if (answerLocked) stopSpeech();
+  }, [answerLocked, stopSpeech]);
 
   /* ----- submit answer ----- */
   const handleSubmitAnswer = async () => {
@@ -353,19 +368,51 @@ function InterviewPage() {
 
             <p className="q-text">{question}</p>
 
-            <label className="field">
-              <span>Your answer</span>
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor="answer-box">Your answer</label>
+
+                {speech.supported && (
+                  <button
+                    type="button"
+                    className={`mic-btn${speech.listening ? " is-listening" : ""}`}
+                    onClick={speech.listening ? speech.stop : speech.start}
+                    disabled={answerLocked}
+                    aria-pressed={speech.listening}
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="12" rx="3" />
+                      <path d="M5 11a7 7 0 0 0 14 0M12 18v4" />
+                    </svg>
+                    {speech.listening ? "Stop recording" : "Speak your answer"}
+                  </button>
+                )}
+              </div>
+
               <textarea
+                id="answer-box"
                 className="textarea"
                 rows={7}
                 value={answer}
-                disabled={busy !== null || Boolean(evaluation)}
+                disabled={answerLocked}
                 onChange={(event) => setAnswer(event.target.value)}
-                placeholder="Type your answer here. Explain your reasoning, not just the definition."
+                placeholder="Type your answer here, or use the microphone to speak it. Explain your reasoning, not just the definition."
               />
-            </label>
+
+              {speech.listening && (
+                <p className="listening" role="status">
+                  <i aria-hidden="true" />
+                  <span>{speech.interim || "Listening… start speaking"}</span>
+                </p>
+              )}
+              {speech.error && <p className="notice notice-error" role="alert">{speech.error}</p>}
+            </div>
             <div className="hint hint-row">
-              <span>Tip: mention an example or an edge case.</span>
+              <span>
+                {speech.supported
+                  ? "Tip: you can edit the text after speaking."
+                  : "Tip: mention an example or an edge case. Voice input needs Chrome or Edge."}
+              </span>
               <span>{answer.length} characters</span>
             </div>
 
@@ -374,7 +421,7 @@ function InterviewPage() {
                 type="button"
                 className="btn btn-primary"
                 onClick={handleSubmitAnswer}
-                disabled={busy !== null || Boolean(evaluation) || !answer.trim()}
+                disabled={answerLocked || !answer.trim()}
               >
                 {busy === "evaluating" ? <><span className="spinner" /> Evaluating…</> : "Submit answer"}
               </button>
