@@ -12,7 +12,8 @@ const {
     createInterview,
     createQuestion,
     createAnswer,
-    completeInterview
+    completeInterview,
+    getInterviewResults
 } = require("../services/interviewDbService");
 
 const router = express.Router();
@@ -167,6 +168,23 @@ router.patch("/:interviewId/complete", async (req, res) => {
 
         res.status(500).json({
             message: "Failed to complete interview."
+        });
+    }
+});
+
+router.get("/:interviewId/results", async (req, res) => {
+    try {
+        const { interviewId } = req.params;
+
+        const results = await getInterviewResults(interviewId);
+
+        res.json(results);
+
+    } catch (error) {
+        console.error("GET INTERVIEW RESULTS ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to fetch interview results."
         });
     }
 });

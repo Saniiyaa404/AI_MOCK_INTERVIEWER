@@ -180,10 +180,114 @@ async function createResume(fileName, resumeText) {
     return result.rows[0];
 }
 
+async function getInterviewResults(interviewId) {
+    const interviewQuery = `
+        SELECT
+            id,
+            role,
+            baseline_difficulty,
+            status,
+            started_at,
+            completed_at
+        FROM interviews
+        WHERE id = $1;
+    `;
+
+    const interviewResult = await pool.query(
+        interviewQuery,
+        [interviewId]
+    );
+
+    if (interviewResult.rows.length === 0) {
+        throw new Error("Interview not found");
+    }
+
+    const questionsQuery = `
+        SELECT
+            q.id,
+            q.question_number,
+            q.topic,
+            q.difficulty,
+            q.is_follow_up,
+            q.question_text,
+
+            a.answer_text,
+            a.technical_accuracy,
+            a.completeness,
+            a.communication_clarity,
+            a.overall_score,
+            a.feedback,
+            a.improvement,
+            a.submitted_at
+
+        FROM questions q
+
+        LEFT JOIN answers a
+            ON q.id = a.question_id
+
+        WHERE q.interview_id = $1
+
+        ORDER BY q.question_number ASC;
+    `;
+
+    const questionsResult = await pool.query(
+        questionsQuery,
+        [interviewId]
+    );
+
+    const questions = questionsResult.rows;
+
+    const answeredQuestions = questions.filter(
+        (question) => question.answer_text !== null
+    );
+
+    const calculateAverage = (field) => {
+        if (answeredQuestions.length === 0) {
+            return 0;
+        }
+
+        const total = answeredQuestions.reduce(
+            (sum, question) => sum + Number(question[field] || 0),
+            0
+        );
+
+        return Number(
+            (total / answeredQuestions.length).toFixed(2)
+        );
+    };
+
+    const summary = {
+        totalQuestions: questions.length,
+
+        answeredQuestions: answeredQuestions.length,
+
+        overallScore: calculateAverage("overall_score"),
+
+        technicalAccuracy: calculateAverage(
+            "technical_accuracy"
+        ),
+
+        completeness: calculateAverage(
+            "completeness"
+        ),
+
+        communicationClarity: calculateAverage(
+            "communication_clarity"
+        )
+    };
+
+    return {
+        interview: interviewResult.rows[0],
+        summary,
+        questions
+    };
+}
+
 module.exports = {
     createInterview,
     createQuestion,
     createAnswer,
     completeInterview,
-    createResume
+    createResume,
+    getInterviewResults
 };

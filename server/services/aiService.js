@@ -336,7 +336,22 @@ Return ONLY the required JSON object.
     });
 
     try {
-        return JSON.parse(response.text);
+        const result = JSON.parse(response.text);
+
+        const overallScore = Number(
+            (
+                (
+                    result.technicalAccuracy +
+                    result.completeness +
+                    result.communicationClarity
+                ) / 3
+            ).toFixed(2)
+        );
+
+        return {
+            ...result,
+            overallScore
+        };
     } catch (error) {
         console.error("Invalid JSON received from Gemini:");
         console.error(response.text);

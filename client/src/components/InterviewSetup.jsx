@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import ResultsDashboard from "./ResultsDashboard";
 import { 
   startInterview, 
   generateQuestion,
@@ -28,6 +29,7 @@ function InterviewSetup({ resumeText, resumeId }) {
   const [followUpUsed, setFollowUpUsed] = useState(false);
   const [interviewId, setInterviewId] = useState(null);
   const [questionId, setQuestionId] = useState(null);
+  const [interviewCompleted, setInterviewCompleted] = useState(false);
   const isGeneratingNextQuestionRef = useRef(false);
 
 
@@ -57,6 +59,7 @@ function InterviewSetup({ resumeText, resumeId }) {
     setFollowUpUsed(false);
     setCurrentDifficulty(difficulty);
     setInterviewId(null);
+    setInterviewCompleted(false);
 
     try {
         const dbData = await startInterviewInDatabase(
@@ -355,6 +358,8 @@ function InterviewSetup({ resumeText, resumeId }) {
                 await completeInterviewInDatabase(interviewId);
 
                 setMessage("Interview completed!");
+
+                setInterviewCompleted(true);
             } catch (error) {
                 console.error(error);
                 setMessage("Failed to complete interview.");
@@ -515,189 +520,197 @@ function InterviewSetup({ resumeText, resumeId }) {
         }
     };
 
-  return (
-    <div>
-      <h2>Interview Setup</h2>
-
-      <div>
-        <label>Job Role</label>
-
-        <input
-          type="text"
-          placeholder="e.g. Backend Developer"
-          value={role}
-          onChange={(event) => setRole(event.target.value)}
-        />
-      </div>
-
-      <div>
-        <label>Difficulty</label>
-
-        <select
-          value={difficulty}
-          onChange={(event) => setDifficulty(event.target.value)}
-        >
-          <option value="Easy">Easy</option>
-          <option value="Medium">Medium</option>
-          <option value="Hard">Hard</option>
-        </select>
-      </div>
-
-      <button onClick={handleStartInterview}>
-        Start Interview
-      </button>
-
-      <p>{message}</p>
-      {topicPlan && (
-          <div>
-              <h3>Interview Topic Plan</h3>
-
-              <ul>
-                  {topicPlan.topics.map((topic, index) => (
-                      <li key={index}>
-                          <strong>{topic.name}</strong>
-                          {" - "}
-                          {topic.priority}
-                          <br />
-                          {topic.reason}
-                      </li>
-                  ))}
-              </ul>
-          </div>
-      )}
-
-      
-      {question && (
-        <div>
-            <h3>
-                Question {questionNumber} of 10
-            </h3>
-
-            <p>
-                <strong>Topic:</strong> {currentTopic}
-            </p>
-
-            <p>
-                <strong>Difficulty:</strong> {currentDifficulty}
-            </p>
-
-            <p>
-                <strong>Type:</strong>{" "}
-                {followUpUsed ? "Follow-up" : "Normal"}
-            </p>
-
-            {coveredTopics.filter(Boolean).length > 0 && (
-                <div>
-                    <h3>Covered Topics</h3>
-
-                    <ul>
-                        {coveredTopics
-                            .filter(Boolean)
-                            .map((topic, index) => (
-                                <li key={index}>{topic}</li>
-                            ))}
-                    </ul>
-                </div>
-            )}
-
-            <p>{question}</p>
-
-            <h3>Your Answer</h3>
-            <textarea
-                rows="6"
-                value={answer}
-                onChange={(event) => setAnswer(event.target.value)}
-                placeholder="Type your answer here..."
+    if (interviewCompleted && interviewId) {
+        return (
+            <ResultsDashboard
+                interviewId={interviewId}
             />
+        );
+    }
 
-            <br />
+    return (
+        <div>
+        <h2>Interview Setup</h2>
 
-            <button onClick={handleSubmitAnswer}>
-                Submit Answer
-            </button>
+        <div>
+            <label>Job Role</label>
 
-            {evaluation && (
-                <button onClick={handleNextQuestion}>
-                Next Question
-                </button>
-            )}
+            <input
+            type="text"
+            placeholder="e.g. Backend Developer"
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+            />
         </div>
-      )}
 
-      {evaluation && (
-          <div>
-              <h3>AI Evaluation</h3>
+        <div>
+            <label>Difficulty</label>
 
-              <div>
-                  <p>
-                      Technical Accuracy:
-                      {" "}
-                      {evaluation.technicalAccuracy}/10
-                  </p>
+            <select
+            value={difficulty}
+            onChange={(event) => setDifficulty(event.target.value)}
+            >
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+            </select>
+        </div>
 
-                  <p>
-                      Completeness:
-                      {" "}
-                      {evaluation.completeness}/10
-                  </p>
+        <button onClick={handleStartInterview}>
+            Start Interview
+        </button>
 
-                  <p>
-                      Communication Clarity:
-                      {" "}
-                      {evaluation.communicationClarity}/10
-                  </p>
+        <p>{message}</p>
+        {topicPlan && (
+            <div>
+                <h3>Interview Topic Plan</h3>
 
-                  <p>
-                      Overall Score:
-                      {" "}
-                      {evaluation.overallScore}/10
-                  </p>
+                <ul>
+                    {topicPlan.topics.map((topic, index) => (
+                        <li key={index}>
+                            <strong>{topic.name}</strong>
+                            {" - "}
+                            {topic.priority}
+                            <br />
+                            {topic.reason}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )}
 
-                  <h4>Feedback</h4>
-                  <p>{evaluation.feedback}</p>
+        
+        {question && (
+            <div>
+                <h3>
+                    Question {questionNumber} of 10
+                </h3>
 
-                  <h4>Area for Improvement</h4>
-                  <p>{evaluation.improvement}</p>
-              </div>
-          </div>
-      )}
+                <p>
+                    <strong>Topic:</strong> {currentTopic}
+                </p>
 
-      {interviewHistory.length > 0 && (
-    <div>
-        <h3>Interview History</h3>
+                <p>
+                    <strong>Difficulty:</strong> {currentDifficulty}
+                </p>
 
-          {interviewHistory.map((item, index) => (
-              <div key={index}>
-                  <h4>Question {index + 1}</h4>
+                <p>
+                    <strong>Type:</strong>{" "}
+                    {followUpUsed ? "Follow-up" : "Normal"}
+                </p>
 
-                  <p>
-                      <strong>Question:</strong>{" "}
-                      {item.question}
-                  </p>
+                {coveredTopics.filter(Boolean).length > 0 && (
+                    <div>
+                        <h3>Covered Topics</h3>
 
-                  <p>
-                      <strong>Your Answer:</strong>{" "}
-                      {item.answer}
-                  </p>
+                        <ul>
+                            {coveredTopics
+                                .filter(Boolean)
+                                .map((topic, index) => (
+                                    <li key={index}>{topic}</li>
+                                ))}
+                        </ul>
+                    </div>
+                )}
 
-                  <p>
-                      <strong>Overall Score:</strong>{" "}
-                      {item.evaluation.overallScore}/10
-                  </p>
+                <p>{question}</p>
 
-                  <p>
-                       <strong>Type:</strong>{" "}
-                       {item.isFollowUp ? "Follow-up" : "Normal"}
-                  </p>
+                <h3>Your Answer</h3>
+                <textarea
+                    rows="6"
+                    value={answer}
+                    onChange={(event) => setAnswer(event.target.value)}
+                    placeholder="Type your answer here..."
+                />
 
-                  <hr />
-              </div>
-          ))}
-      </div>
-      )}
+                <br />
 
-    </div>
-  );
+                <button onClick={handleSubmitAnswer}>
+                    Submit Answer
+                </button>
+
+                {evaluation && (
+                    <button onClick={handleNextQuestion}>
+                    Next Question
+                    </button>
+                )}
+            </div>
+        )}
+
+        {evaluation && (
+            <div>
+                <h3>AI Evaluation</h3>
+
+                <div>
+                    <p>
+                        Technical Accuracy:
+                        {" "}
+                        {evaluation.technicalAccuracy}/10
+                    </p>
+
+                    <p>
+                        Completeness:
+                        {" "}
+                        {evaluation.completeness}/10
+                    </p>
+
+                    <p>
+                        Communication Clarity:
+                        {" "}
+                        {evaluation.communicationClarity}/10
+                    </p>
+
+                    <p>
+                        Overall Score:
+                        {" "}
+                        {evaluation.overallScore}/10
+                    </p>
+
+                    <h4>Feedback</h4>
+                    <p>{evaluation.feedback}</p>
+
+                    <h4>Area for Improvement</h4>
+                    <p>{evaluation.improvement}</p>
+                </div>
+            </div>
+        )}
+
+        {interviewHistory.length > 0 && (
+        <div>
+            <h3>Interview History</h3>
+
+            {interviewHistory.map((item, index) => (
+                <div key={index}>
+                    <h4>Question {index + 1}</h4>
+
+                    <p>
+                        <strong>Question:</strong>{" "}
+                        {item.question}
+                    </p>
+
+                    <p>
+                        <strong>Your Answer:</strong>{" "}
+                        {item.answer}
+                    </p>
+
+                    <p>
+                        <strong>Overall Score:</strong>{" "}
+                        {item.evaluation.overallScore}/10
+                    </p>
+
+                    <p>
+                        <strong>Type:</strong>{" "}
+                        {item.isFollowUp ? "Follow-up" : "Normal"}
+                    </p>
+
+                    <hr />
+                </div>
+            ))}
+        </div>
+        )}
+
+        </div>
+    );
 }
 
 export default InterviewSetup;
