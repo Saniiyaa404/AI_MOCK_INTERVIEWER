@@ -342,6 +342,41 @@ function InterviewSetup({ resumeText, resumeId }) {
         return "Hard";
     };
 
+    const handleSubmitInterview = async () => {
+        if (!interviewId) {
+            return;
+        }
+
+        if (!evaluation) {
+            setMessage("Please submit your current answer first.");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Are you sure you want to submit the interview?\n\n" +
+            "You will not be able to continue answering questions after submission."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setMessage("Completing interview...");
+
+            await completeInterviewInDatabase(interviewId);
+
+            setInterviewCompleted(true);
+            setMessage("Interview completed!");
+
+        } catch (error) {
+            console.error("SUBMIT INTERVIEW ERROR:", error);
+
+            setMessage(
+                error.message || "Failed to complete interview."
+            );
+        }
+    };
 
     const handleNextQuestion = async () => {
 
@@ -630,10 +665,22 @@ function InterviewSetup({ resumeText, resumeId }) {
                 </button>
 
                 {evaluation && (
-                    <button onClick={handleNextQuestion}>
-                    Next Question
-                    </button>
+                    <>
+                        <button onClick={handleNextQuestion}>
+                            {questionNumber >= 10 ? "Finish Interview" : "Next Question"}
+                        </button>
+
+                        {questionNumber < 10 && (
+                            <button
+                                onClick={handleSubmitInterview}
+                                className="submit-interview-button"
+                            >
+                                Submit Interview
+                            </button>
+                        )}
+                    </>
                 )}
+                
             </div>
         )}
 

@@ -187,8 +187,7 @@ function ResultsDashboard({ interviewId }) {
                     </h2>
 
                     <p>
-                        {summary.answeredQuestions} /{" "}
-                        {summary.totalQuestions} questions answered
+                        {summary.answeredQuestions} / 10 questions answered
                     </p>
 
                 </div>

@@ -27,30 +27,23 @@ function ResumeUploader({ onResumeExtracted }) {
 };
 
   return (
-    <div>
-      <h2>Upload Resume</h2>
+      <div>
+          <h2>Upload Resume</h2>
 
-      <input
-        type="file"
-        accept=".pdf"
-        onChange={(event) => {
-          setFile(event.target.files[0]);
-        }}
-      />
+          <input
+              type="file"
+              accept=".pdf"
+              onChange={(event) => {
+                  setFile(event.target.files[0]);
+              }}
+          />
 
-      <button onClick={handleUpload}>
-        Upload Resume
-      </button>
+          <button onClick={handleUpload}>
+              Upload Resume
+          </button>
 
-      <p>{message}</p>
-
-      {resumeText && (
-        <div>
-          <h3>Extracted Resume Text</h3>
-          <pre>{resumeText}</pre>
-        </div>
-      )}
-    </div>
+          <p>{message}</p>
+      </div>
   );
 }
 
