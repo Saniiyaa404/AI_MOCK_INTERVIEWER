@@ -1,416 +1,389 @@
-# AI Mock Interviewer
+# AI-Powered Technical Mock Interviewer
 
-An AI-powered technical mock interview platform that generates personalized interview questions based on a candidate's resume, selected job role, and difficulty level.
+> An AI-driven technical interview platform that generates adaptive, role-specific interview questions, evaluates candidate responses, and provides detailed performance insights — powered by Gemini, React, Node.js, Express, and PostgreSQL.
 
-The system dynamically adapts question topics and difficulty based on the candidate's previous performance and provides structured AI-generated feedback after every answer.
-
----
-
-## Overview
-
-AI Mock Interviewer simulates a technical interview experience where candidates can:
-
-- Upload their resume
-- Select a target job role
-- Select a baseline interview difficulty
-- Receive AI-generated technical questions
-- Get adaptive questions based on previous performance
-- Receive structured feedback and scoring
-- Track their interview performance
-- View a detailed results dashboard
-
-The platform combines AI-based question generation with deterministic interview logic and PostgreSQL persistence.
+<p align="center">
+  <a href="https://ai-mock-interviewer-three-gray.vercel.app">
+    <img src="https://img.shields.io/badge/Live%20Demo-Visit%20Website-success?style=for-the-badge" alt="Live Demo">
+  </a>
+  <a href="https://github.com/Saniiyaa404/AI_MOCK_INTERVIEWER">
+    <img src="https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github" alt="GitHub Repository">
+  </a>
+</p>
 
 ---
 
-## Key Features
+## 📌 Overview
 
-### Resume-Based Interview Setup
+**AI-Powered Technical Mock Interviewer** is a full-stack web application designed to simulate technical interviews using generative AI.
 
-Candidates can upload their resume in PDF format.
+Instead of following a fixed list of interview questions, the platform analyzes the candidate's resume, selected role, and interview performance to dynamically determine what should be asked next.
 
-The system:
+The system can:
 
-1. Extracts the resume text
-2. Stores the resume in PostgreSQL
-3. Uses the extracted content as context for interview generation
+- Analyze an uploaded resume
+- Generate role-specific technical questions
+- Create a structured interview topic plan
+- Adapt subsequent questions based on previous answers
+- Identify weak areas and generate focused follow-up questions
+- Evaluate answers across multiple dimensions
+- Store interview progress and results securely
+- Provide a detailed performance dashboard
+- Maintain interview history for the current anonymous user
 
----
-
-### AI-Powered Topic Planning
-
-Before the interview begins, the AI generates a topic plan based on:
-
-- Candidate resume
-- Selected job role
-- Selected difficulty
-
-Topics are assigned priorities so that the interview can cover multiple relevant technical areas.
+The application is deployed using **Vercel + Render**, with **Supabase PostgreSQL** and **Supabase Anonymous Authentication** for persistence and privacy.
 
 ---
 
-### Adaptive Question Generation
+## ✨ Key Features
 
-The interview dynamically adapts based on the candidate's performance.
+### 📄 Resume-Based Interview Preparation
 
-The system considers:
+Candidates can upload their resume as a PDF.
 
-- Previous answer score
-- Current topic
-- Topic coverage
+The backend:
+
+1. Receives the PDF
+2. Extracts its text
+3. Stores the extracted resume data
+4. Uses the resume context during interview generation
+
+This allows the interview to be tailored to the candidate's actual skills and projects.
+
+---
+
+### 🎯 Role & Difficulty Selection
+
+Before starting an interview, the candidate selects:
+
+- Target role
 - Baseline difficulty
-- Previous follow-up questions
 
-Weak answers can trigger focused follow-up questions, while strong answers can lead to more challenging questions.
-
----
-
-### Adaptive Difficulty
-
-The interview starts with the selected baseline difficulty:
+Supported difficulty levels:
 
 - Easy
 - Medium
 - Hard
 
-Difficulty can temporarily increase or decrease based on the candidate's performance.
-
-The system prevents difficulty changes from accumulating indefinitely and returns to the baseline when appropriate.
+The selected difficulty is preserved throughout the interview and influences question generation.
 
 ---
 
-### AI Answer Evaluation
+### 🧠 Dynamic Topic Planning
 
-Each answer is evaluated across three dimensions:
+Instead of generating completely random questions, the system creates a structured topic plan based on the selected role and candidate profile.
 
+Example topics may include:
+
+- Node.js Backend Development
+- Express.js API Development
+- Authentication & Authorization
+- MongoDB Data Modeling
+- REST APIs
+- JavaScript
+- Backend Architecture
+
+The system tracks which topics have already been adequately covered.
+
+---
+
+### 🔄 Adaptive Interview Engine
+
+The interviewer dynamically adapts based on the candidate's previous answers.
+
+If an answer is weak, the system can prioritize that area for a follow-up question.
+
+The adaptive logic considers:
+
+- Previous question
+- Candidate answer
+- Technical evaluation
+- Weak areas
+- Previously covered topics
+- Current interview history
+- Selected difficulty
+
+A topic is not considered adequately covered simply because it was asked once.
+
+The system uses the candidate's evaluation score to determine whether additional coverage is required.
+
+---
+
+### 🧩 Focused Follow-Up Questions
+
+Weak answers can trigger targeted follow-up questions.
+
+The system uses previous feedback and improvement suggestions to decide what should be explored next.
+
+To avoid repetitive questioning, the interviewer also limits consecutive questions around the same specific concept.
+
+---
+
+### 📊 AI-Powered Answer Evaluation
+
+Every submitted answer is evaluated using three major dimensions:
+
+| Metric | Description |
+|---|---|
+| Technical Accuracy | Correctness of the technical explanation |
+| Completeness | Coverage and depth of the answer |
+| Communication Clarity | How clearly the candidate communicates the concept |
+| Overall Score | Combined assessment of the response |
+
+The system also provides:
+
+- Feedback
+- Improvement suggestions
+- Overall score
+
+---
+
+### 📈 Performance Dashboard
+
+After completing an interview, candidates receive a detailed results dashboard containing:
+
+- Overall score
 - Technical Accuracy
 - Completeness
 - Communication Clarity
+- Performance breakdown
+- Question-wise review
+- Individual answer evaluations
+- Areas of improvement
+- Number of answered questions
 
-The question-level score is calculated from these three evaluation dimensions.
-
-The interview-level score is calculated from the performance across all answered questions.
+The dashboard helps candidates identify their technical strengths and areas requiring further preparation.
 
 ---
 
-### Persistent Interview Data
+### 📝 Interview History
 
-Interview data is stored in PostgreSQL using Supabase.
+Completed and ongoing interviews are stored in PostgreSQL.
 
-The database stores:
+Candidates can view their previous interview attempts, including:
+
+- Role
+- Difficulty
+- Interview status
+- Number of questions
+- Number of answered questions
+- Overall score
+- Start time
+- Completion time
+
+Only interviews belonging to the current anonymous user are returned.
+
+---
+
+### 🔐 Anonymous Authentication & Data Isolation
+
+The application uses **Supabase Anonymous Authentication**.
+
+Users do not need to create an account or provide personal information to start using the platform.
+
+Each anonymous user receives a unique Supabase user ID.
+
+User-owned data is associated with this ID, including:
 
 - Resumes
 - Interviews
-- Questions
+- Interview questions
 - Answers
-- Evaluation scores
-- Feedback
-- Improvement suggestions
+- Results
+
+The backend verifies the Supabase authentication token before allowing access to protected interview data.
+
+This prevents one anonymous user's interview history from being exposed to another user.
 
 ---
 
-### Results Dashboard
+### ⏭️ Early Interview Submission
 
-After completing the interview, candidates receive a detailed performance dashboard containing:
+Users do not have to complete all 10 questions if they want to finish early.
 
-- Overall interview score
-- Technical accuracy
-- Completeness
-- Communication clarity
-- Per-question performance chart
-- Question-wise feedback
-- Improvement suggestions
-- Areas of improvement
+The application allows an interview to be submitted before the final question, provided the current question has been answered and evaluated.
 
-The question-wise review is collapsible to keep the dashboard clean and easy to navigate.
+The results dashboard then reflects the actual number of answered questions.
 
 ---
 
-## Tech Stack
+## 🏗️ System Architecture
 
-### Frontend
+```text
+                    ┌─────────────────────┐
+                    │      React + Vite   │
+                    │      Frontend       │
+                    └──────────┬──────────┘
+                               │
+                               │ HTTP / REST API
+                               ▼
+                    ┌─────────────────────┐
+                    │   Node.js + Express │
+                    │      Backend        │
+                    └──────┬─────────┬────┘
+                           │         │
+                ┌──────────┘         └─────────────┐
+                ▼                                  ▼
+       ┌─────────────────┐                ┌─────────────────┐
+       │ Gemini AI       │                │ Supabase Auth   │
+       │ Question &      │                │ Anonymous Auth  │
+       │ Evaluation      │                └─────────────────┘
+       └─────────────────┘
+                │
+                ▼
+       ┌─────────────────┐
+       │ PostgreSQL      │
+       │ via Supabase    │
+       └─────────────────┘
+```
+🔄 Interview Flow
 
+```
+Resume Upload
+      ↓
+PDF Text Extraction
+      ↓
+Select Role & Difficulty
+      ↓
+Create Interview
+      ↓
+Generate Topic Plan
+      ↓
+Generate First Question
+      ↓
+Candidate Answers
+      ↓
+AI Evaluation
+      ↓
+Update Interview History
+      ↓
+Analyze Weak Areas
+      ↓
+Generate Adaptive Question
+      ↓
+Repeat
+      ↓
+Complete Interview
+      ↓
+Performance Dashboard
+```
+🛠️ Tech Stack
+1. Frontend
 - React
 - Vite
 - JavaScript
 - CSS
-
-### Backend
-
+- Fetch API
+- Supabase JavaScript Client
+2. Backend
 - Node.js
 - Express.js
-
-### AI
-
-- Google Gemini API
-
-### Database
-
+- REST APIs
+- Multer
+- PDF parsing
+- Supabase JavaScript Client
+3. AI
+- Google Gemini
+- Dynamic question generation
+- Topic planning
+- Adaptive question generation
+- Answer evaluation
+4. Database
 - PostgreSQL
 - Supabase
+- Relational data model
+- UUID-based records
+5. Authentication
+- Supabase Anonymous Authentication
+- JWT-based backend authentication
+- User ownership validation
+6. Deployment
+- Vercel — Frontend
+- Render — Backend
+- Supabase — Database & Authentication
 
-### Resume Processing
+Database Design
 
-- PDF parsing
-- Multer
+The application uses PostgreSQL with the following core tables:
 
-### Development Tools
+1. resumes
 
-- VS Code
-- Git
-- GitHub
+Stores uploaded resume information.
 
----
-
-## System Architecture
-
-```text
-                ┌─────────────────────┐
-                │   React Frontend    │
-                │      (Vite)         │
-                └──────────┬──────────┘
-                           │
-                           │ HTTP API
-                           ▼
-                ┌─────────────────────┐
-                │  Node.js + Express  │
-                │      Backend        │
-                └───────┬─────┬───────┘
-                        │     │
-             ┌──────────┘     └──────────────┐
-             ▼                               ▼
-    ┌─────────────────┐             ┌─────────────────┐
-    │  Gemini API     │             │   PostgreSQL    │
-    │                 │             │    Supabase     │
-    │ Question Gen.   │             │                 │
-    │ Evaluation      │             │ Resumes         │
-    │ Topic Planning  │             │ Interviews      │
-    └─────────────────┘             │ Questions       │
-                                    │ Answers         │
-                                    └─────────────────┘
 ```
-Interview Flow
-
-```text
-
-Resume Upload
-      │
-      ▼
-Resume Text Extraction
-      │
-      ▼
-Interview Setup
-(Role + Difficulty)
-      │
-      ▼
-AI Topic Planning
-      │
-      ▼
-Question Generation
-      │
-      ▼
-Candidate Answer
-      │
-      ▼
-AI Evaluation
-      │
-      ▼
-Adaptive Topic + Difficulty Selection
-      │
-      ▼
-Next Question
-      │
-      ▼
-10 Question Interview
-      │
-      ▼
-Results Dashboard
-```
-Database Structure
-
-The application uses four main tables:
-
-1. resumes - Stores uploaded resume information and extracted resume text.
-
-2. interviews - Stores interview configuration and status.
-
-3. questions - Stores generated interview questions, topics, difficulty and question type.
-
-4. answers - Stores candidate answers and their evaluation scores.
-
-Relationship:
-```text
-
-Resume
-   │
-   ▼
-Interview
-   │
-   ├── Question
-   │      │
-   │      └── Answer
-   │
-   ├── Question
-   │      │
-   │      └── Answer
-   │
-   └── ...
-Scoring System
+resumes
+├── id
+├── file_name
+├── resume_text
+├── user_id
+└── created_at
 ```
 
-Each answer receives three scores from 0–10:
+2. interviews
 
-Technical Accuracy
-Completeness
-Communication Clarity
+Stores interview-level information.
 
-The question-level overall score is calculated as:
-
-Overall Score = (Technical Accuracy + Completeness  + Communication Clarity) / 3
-
-The final interview score is calculated from the average overall score of the answered questions.
-
-Adaptive Difficulty Logic: The selected difficulty acts as the interview's baseline.
-
-The system temporarily adjusts difficulty according to performance:
-
-```text
-Low Score
-   ↓
-Lower Difficulty
-
-Moderate Score
-   ↓
-Baseline Difficulty
-
-High Score
-   ↓
-Higher Difficulty
+```
+interviews
+├── id
+├── resume_id
+├── user_id
+├── role
+├── baseline_difficulty
+├── status
+├── started_at
+└── completed_at
 ```
 
-Adaptive difficulty is bounded between:
+3. questions
 
-Easy ← Medium → Hard
+Stores generated interview questions.
 
-so the system does not continuously increase or decrease difficulty.
-
-Project Structure
-
-```text
-
-AI_MOCK_INTERVIEWER/
-│
-├── client/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ResumeUploader.jsx
-│   │   │   ├── InterviewSetup.jsx
-│   │   │   └── ResultsDashboard.jsx
-│   │   │
-│   │   ├── services/
-│   │   │   └── api.js
-│   │   │
-│   │   └── App.jsx
-│   │
-│   └── package.json
-│
-├── server/
-│   ├── routes/
-│   │   ├── interviewRoutes.js
-│   │   └── resumeRoutes.js
-│   │
-│   ├── services/
-│   │   ├── aiService.js
-│   │   └── interviewDbService.js
-│   │
-│   ├── db.js
-│   ├── server.js
-│   └── package.json
-│
-├── .gitignore
-└── README.md
+```
+questions
+├── id
+├── interview_id
+├── question_number
+├── topic
+├── difficulty
+├── is_follow_up
+├── question_text
+└── created_at
 ```
 
-Getting Started
-1. Clone the repository
-```text
-git clone https://github.com/Saniiyaa404/AI_MOCK_INTERVIEWER
-cd AI_MOCK_INTERVIEWER
+4. answers
+
+Stores candidate answers and AI evaluation.
+
 ```
-3. Install frontend dependencies
+answers
+├── id
+├── question_id
+├── answer_text
+├── technical_accuracy
+├── completeness
+├── communication_clarity
+├── overall_score
+├── feedback
+├── improvement
+└── submitted_at
 ```
-cd client
-npm install
+
+5. Relationships
 ```
-5. Install backend dependencies
-```
-cd ../server
-npm install
-```
-7. Configure environment variables
-```
-Create a .env file inside the server directory.
-
-GEMINI_API_KEY=your_gemini_api_key
-DATABASE_URL=your_supabase_postgresql_connection_string
-
-Do not commit the .env file to GitHub.
-```
-5. Start the backend
-```
-From the server directory:
-
-npm run dev
-```
-6. Start the frontend
-```
-Open another terminal:
-
-cd client
-npm run dev
-```
-The frontend will be available at the local Vite development URL.
-
-Current Scope
-
-This project currently focuses on the core technical mock interview experience:
-
-+ Resume processing
-
-+ AI topic planning
-
-+ Adaptive question generation
-
-+ Adaptive difficulty
-  
-+ AI answer evaluation
-  
-+ PostgreSQL persistence
-  
-+ Interview results dashboard
-
-Additional features such as voice-based interviews, live coding and authentication can be added in future iterations.
-
-Future Improvements
-
-Potential future enhancements include:
-
-+ Voice-based interview interaction
-  
-+ Speech-to-text answer processing
-  
-+ Live coding environment
-  
-+ Authentication and user profiles
-  
-+ Interview history
-  
-+ Performance tracking across multiple interviews
-  
-+ More advanced analytics
-  
-+ Production deployment
+User
+ │
+ ├── Resumes
+ │      │
+ │      └── Interviews
+ │             │
+ │             ├── Questions
+ │             │      │
+ │             │      └── Answers
+ │             │
+ │             └── Results
+ │
+ └── Interview History
 
 
-Author-
-Saniya
+
