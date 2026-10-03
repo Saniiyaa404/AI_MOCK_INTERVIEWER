@@ -275,7 +275,7 @@ React + Vite Frontend
         Answer Evaluation
 ```
 
-🔄 Interview Flow
+## 🔄 Interview Flow
 
 ```
 Resume Upload
@@ -306,7 +306,7 @@ Complete Interview
       ↓
 Performance Dashboard
 ```
-🛠️ Tech Stack
+## 🛠️ Tech Stack
 1. Frontend
    
 - React
@@ -353,7 +353,7 @@ Performance Dashboard
 - Render — Backend
 - Supabase — Database & Authentication
 
-Database Design
+## Database Design
 
 The application uses PostgreSQL with the following core tables:
 
@@ -436,7 +436,7 @@ User
  │
  └── Interview History
 ```
-🔐 Security & Privacy
+## 🔐 Security & Privacy
 
 The application implements authentication and ownership checks at the backend level.
 
@@ -464,7 +464,7 @@ The backend extracts the authenticated user's ID and verifies ownership before a
 - Interview queries are filtered by user_id
 - Anonymous users cannot access another user's interview history
 
-📁 Project Structure
+## 📁 Project Structure
 
 ```
 AI_MOCK_INTERVIEWER/
@@ -506,7 +506,7 @@ AI_MOCK_INTERVIEWER/
 ├── .gitignore
 └── README.md
 ```
-🚀 Local Development
+## 🚀 Local Development
 
 1. Clone the repository
 ```
@@ -587,27 +587,41 @@ https://ai-mock-interviewer-toyt.onrender.com
 
 https://github.com/Saniiyaa404/AI_MOCK_INTERVIEWER
 
-📸 Screenshots
+## 📸 Screenshots
 
 1. Landing / Interview Setup
+   
 <img width="1894" height="918" alt="image" src="https://github.com/user-attachments/assets/f76a7093-2132-43db-9162-beab31fd84db" />
 
-2. Resume Upload
+
+3. Resume Upload
+   
 <img width="1910" height="915" alt="image" src="https://github.com/user-attachments/assets/31cf1ac6-ba42-4783-850b-692d4abef697" />
 
-3. Interview Interface
+
+5. Interview Interface
+   
 <img width="1890" height="910" alt="image" src="https://github.com/user-attachments/assets/370abc27-4bda-4f84-9267-f35c84b23725" />
 
-4. AI Evaluation
+
+7. AI Evaluation
+   
 <img width="1895" height="917" alt="image" src="https://github.com/user-attachments/assets/cb665595-3541-413b-96c6-cb1fe40008cc" />
 
-5. Results Dashboard
+
+9. Results Dashboard
+    
 <img width="1895" height="891" alt="image" src="https://github.com/user-attachments/assets/b0049f20-9e74-4711-bd60-b6e1c3f2fd92" />
+
 <img width="1895" height="913" alt="image" src="https://github.com/user-attachments/assets/bc5febc1-5424-44d8-9469-48bca0ba334e" />
+
 <img width="1894" height="911" alt="image" src="https://github.com/user-attachments/assets/04ad0286-81d8-466a-9512-f971589a34b0" />
 
-6. Interview History
+
+11. Interview History
+    
 <img width="1905" height="837" alt="image" src="https://github.com/user-attachments/assets/044ceb3d-5966-4f61-a28b-5bdeed91e8bc" />
+
 
 # 🧠 Adaptive Interview Logic
 
