@@ -119,6 +119,24 @@ To avoid repetitive questioning, the interviewer also limits consecutive questio
 
 ---
 
+### 🎙️ Voice-Based Interview Responses
+
+Candidates can answer technical interview questions by speaking directly through their microphone, in addition to typing their responses.
+
+The application uses the **Web Speech API** to provide browser-based speech recognition and convert spoken responses into text.
+
+Key capabilities include:
+
+* **Speech-to-Text Conversion:** Converts spoken answers into text in real time.
+* **Hands-Free Answering:** Allows candidates to respond verbally instead of typing every answer.
+* **Text-Based Evaluation:** Converts recognized speech into text that can be submitted to the existing AI-powered evaluation engine.
+* **Integrated Interview Workflow:** Voice responses follow the same answer submission and evaluation process as typed responses.
+
+This feature provides a more natural mock interview experience while reusing the existing adaptive questioning and answer evaluation pipeline.
+
+**Technology:** Web Speech API (Speech Recognition).
+
+
 ### 📊 AI-Powered Answer Evaluation
 
 Every submitted answer is evaluated using three major dimensions:
@@ -236,6 +254,27 @@ The results dashboard then reflects the actual number of answered questions.
        │ via Supabase    │
        └─────────────────┘
 ```
+## 🎙️ Voice Input Flow
+
+```text
+React + Vite Frontend
+        |
+        ├── Typed Answer Input
+        |
+        └── Web Speech API
+                 |
+          Speech-to-Text
+                 |
+          Recognized Text
+                 |
+                 ▼
+       Node.js + Express Backend
+                 |
+                 ▼
+             Gemini AI
+        Answer Evaluation
+```
+
 🔄 Interview Flow
 
 ```
@@ -269,35 +308,47 @@ Performance Dashboard
 ```
 🛠️ Tech Stack
 1. Frontend
+   
 - React
 - Vite
 - JavaScript
 - CSS
 - Fetch API
 - Supabase JavaScript Client
+- Web Speech API — Speech-to-Text for Voice-Based Interview Responses
+  
 2. Backend
+
 - Node.js
 - Express.js
 - REST APIs
 - Multer
 - PDF parsing
 - Supabase JavaScript Client
+  
 3. AI
+   
 - Google Gemini
 - Dynamic question generation
 - Topic planning
 - Adaptive question generation
 - Answer evaluation
+  
 4. Database
+   
 - PostgreSQL
 - Supabase
 - Relational data model
 - UUID-based records
+  
 5. Authentication
+   
 - Supabase Anonymous Authentication
 - JWT-based backend authentication
 - User ownership validation
+  
 6. Deployment
+   
 - Vercel — Frontend
 - Render — Backend
 - Supabase — Database & Authentication
@@ -306,7 +357,7 @@ Database Design
 
 The application uses PostgreSQL with the following core tables:
 
-1. resumes
+1. Resumes
 
 Stores uploaded resume information.
 
@@ -319,7 +370,7 @@ resumes
 └── created_at
 ```
 
-2. interviews
+2. Interviews
 
 Stores interview-level information.
 
@@ -335,7 +386,7 @@ interviews
 └── completed_at
 ```
 
-3. questions
+3. Questions
 
 Stores generated interview questions.
 
@@ -384,6 +435,379 @@ User
  │             └── Results
  │
  └── Interview History
+```
+🔐 Security & Privacy
+
+The application implements authentication and ownership checks at the backend level.
+
+Protected API Routes
+
+Protected operations include:
+
+- Resume upload
+- Interview creation
+- Question persistence
+- Answer persistence
+- Interview completion
+- Interview history
+- Interview results
+
+Each request requires a valid Supabase access token.
+
+The backend extracts the authenticated user's ID and verifies ownership before accessing interview-related records.
+
+#Important Security Practices
+- API keys are stored using environment variables
+- Secrets are not committed to Git
+- Supabase Service Role Key is not used by the frontend
+- Backend validates authenticated users
+- Interview queries are filtered by user_id
+- Anonymous users cannot access another user's interview history
+
+📁 Project Structure
+
+```
+AI_MOCK_INTERVIEWER/
+│
+├── client/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ResultsDashboard.jsx
+│   │   │   └── ...
+│   │   │
+│   │   ├── context/
+│   │   │   └── InterviewProvider.jsx
+│   │   │
+│   │   ├── lib/
+│   │   │   └── supabase.js
+│   │   │
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   │
+│   │   └── ...
+│   │
+│   └── package.json
+│
+├── server/
+│   ├── middleware/
+│   │   └── authMiddleware.js
+│   │
+│   ├── routes/
+│   │   ├── interviewRoutes.js
+│   │   └── resumeRoutes.js
+│   │
+│   ├── services/
+│   │   └── interviewDbService.js
+│   │
+│   ├── db.js
+│   ├── server.js
+│   └── package.json
+│
+├── .gitignore
+└── README.md
+```
+🚀 Local Development
+
+1. Clone the repository
+```
+git clone https://github.com/Saniiyaa404/AI_MOCK_INTERVIEWER.git
+cd AI_MOCK_INTERVIEWER
+```
+2. Install frontend dependencies
+```
+cd client
+npm install
+```
+3. Install backend dependencies
+```
+cd ../server
+npm install
+```
+4. Configure environment variables
+Create:
+```
+client/.env
+```
+Example:
+```
+VITE_API_URL=http://localhost:5000
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
+Create:
+```
+server/.env
+```
+Example:
+```
+DATABASE_URL=your_postgresql_connection_string
+
+GEMINI_API_KEY=your_gemini_api_key
+
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
+Never commit .env files or secret API keys to GitHub.
+
+5. Start the backend
+
+From the server directory:
+
+```
+npm start
+```
+The backend runs on:
+
+```
+http://localhost:5000
+```
+6. Start the frontend
+
+From the client directory:
+
+```
+npm run dev
+```
+The frontend will be available at the Vite development URL shown in the terminal.
+
+🌐 Live Demo
+Frontend
+
+- Live Application:
+
+https://ai-mock-interviewer-three-gray.vercel.app
+
+- Backend
+
+Render API:
+
+https://ai-mock-interviewer-toyt.onrender.com
+
+- Repository
+
+https://github.com/Saniiyaa404/AI_MOCK_INTERVIEWER
+
+📸 Screenshots
+
+1. Landing / Interview Setup
+<img width="1894" height="918" alt="image" src="https://github.com/user-attachments/assets/f76a7093-2132-43db-9162-beab31fd84db" />
+
+2. Resume Upload
+<img width="1910" height="915" alt="image" src="https://github.com/user-attachments/assets/31cf1ac6-ba42-4783-850b-692d4abef697" />
+
+3. Interview Interface
+<img width="1890" height="910" alt="image" src="https://github.com/user-attachments/assets/370abc27-4bda-4f84-9267-f35c84b23725" />
+
+4. AI Evaluation
+<img width="1895" height="917" alt="image" src="https://github.com/user-attachments/assets/cb665595-3541-413b-96c6-cb1fe40008cc" />
+
+5. Results Dashboard
+<img width="1895" height="891" alt="image" src="https://github.com/user-attachments/assets/b0049f20-9e74-4711-bd60-b6e1c3f2fd92" />
+<img width="1895" height="913" alt="image" src="https://github.com/user-attachments/assets/bc5febc1-5424-44d8-9469-48bca0ba334e" />
+<img width="1894" height="911" alt="image" src="https://github.com/user-attachments/assets/04ad0286-81d8-466a-9512-f971589a34b0" />
+
+6. Interview History
+<img width="1905" height="837" alt="image" src="https://github.com/user-attachments/assets/044ceb3d-5966-4f61-a28b-5bdeed91e8bc" />
+
+🧠 Adaptive Interview Logic
+
+One of the core features of the application is adaptive question selection.
+
+The system tracks:
+```
+Interview History
+       ↓
+Answer Evaluation
+       ↓
+Identify Weak Areas
+       ↓
+Check Covered Topics
+       ↓
+Prioritize Topics
+       ↓
+Generate Next Question
+```
+Topic Coverage
+
+A topic is not marked as adequately covered simply because a question from that topic was asked.
+
+The system considers the candidate's performance before treating the topic as sufficiently covered.
+
+For example:
+```
+Question → Authentication
+Score → 5.5 / 10
+       ↓
+Topic remains weak
+       ↓
+Generate focused follow-up
+```
+Whereas:
+```
+Question → Authentication
+Score → 8.5 / 10
+       ↓
+Topic can be considered adequately covered
+       ↓
+Move toward other topics
+```
+This helps make the interview more responsive to candidate performance.
+
+📊 Evaluation Model
+
+Each answer receives a structured evaluation:
+
+```
+                    Candidate Answer
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │   Gemini AI      │
+                  └────────┬────────┘
+                           │
+          ┌────────────────┼────────────────┐
+          ▼                ▼                ▼
+ Technical Accuracy   Completeness   Communication Clarity
+          │                │                │
+          └────────────────┼────────────────┘
+                           ▼
+                    Overall Score
+                           │
+                           ▼
+                 Feedback + Improvement
+```
+
+This structured output is then stored in PostgreSQL and displayed on the results dashboard.
+
+🧪 Current Implementation Status
+
+```
+| Feature                       | Status      |
+| ----------------------------- | ----------- |
+| React Frontend                | ✅ Completed |
+| Node.js / Express Backend     | ✅ Completed |
+| Resume PDF Upload             | ✅ Completed |
+| PDF Text Extraction           | ✅ Completed |
+| Role Selection                | ✅ Completed |
+| Difficulty Selection          | ✅ Completed |
+| AI Topic Planning             | ✅ Completed |
+| Dynamic Question Generation   | ✅ Completed |
+| Adaptive Question Generation  | ✅ Completed |
+| Weak Topic Detection          | ✅ Completed |
+| Follow-up Questions           | ✅ Completed |
+| AI Answer Evaluation          | ✅ Completed |
+| Structured Scoring            | ✅ Completed |
+| Interview Persistence         | ✅ Completed |
+| PostgreSQL Database           | ✅ Completed |
+| Anonymous Authentication      | ✅ Completed |
+| User Data Isolation           | ✅ Completed |
+| Interview History             | ✅ Completed |
+| Results Dashboard             | ✅ Completed |
+| Early Interview Submission    | ✅ Completed |
+| Vercel Deployment             | ✅ Completed |
+| Render Deployment             | ✅ Completed |
+| Production End-to-End Testing | ✅ Completed |
+| Voice-Based Answer Input      | ✅ Completed |
+| Web Speech API Integration    | ✅ Completed |
+| Speech-to-Text Conversion     | ✅ Completed |
+```
+
+## 🔮 Future Enhancements
+
+The following features can be added in future iterations:
+
+# 💻 Live Coding Environment
+
+Add an in-browser coding editor with:
+
+- Syntax highlighting
+- Code execution
+- Test cases
+- Programming-language selection
+- AI-based code evaluation
+- 📈 Long-Term Performance Analytics
+
+# Track performance across multiple interviews and visualize:
+
+- Topic-wise progress
+- Score trends
+- Frequently weak concepts
+- Improvement over time
+- 🧹 Anonymous User Lifecycle Management
+
+# Introduce periodic cleanup of inactive anonymous accounts and their associated data.
+
+# 👤 Optional Persistent Accounts
+
+- Allow users to upgrade from anonymous sessions to persistent accounts while retaining their interview history.
+
+## 🎯 Project Goals
+
+The project aims to solve several limitations of traditional mock interviews:
+
+- Static question sets
+- Lack of personalized questioning
+- Limited feedback
+- No adaptive follow-ups
+- Poor visibility into weak areas
+- Difficulty tracking interview performance
+
+By combining generative AI with structured interview state management and persistent user data, the platform provides a more personalized technical interview practice experience.
+
+## 🧩 Engineering Highlights
+
+This project demonstrates practical implementation of:
+
+- Full-stack application architecture
+- REST API design
+- React state management
+- Express middleware
+- JWT-based authentication
+- Anonymous authentication
+- PostgreSQL relational modeling
+- Database ownership checks
+- File upload handling
+- PDF text extraction
+- AI prompt engineering
+- Structured AI responses
+- Adaptive decision logic
+- Asynchronous API workflows
+- Deployment and environment configuration
+- Production debugging
+- Secure environment variable management
+
+## 👩‍💻 Author
+Saniya
+
+B.Tech Electronics and Communication Engineering
+
+Madan Mohan Malaviya University of Technology, Gorakhpur
+
+Interests: Software Engineering · Backend Development · AI Applications · Full-Stack Development
+
+## 📄 License
+
+This project is developed for educational, portfolio, and demonstration purposes.
+
+<p align="center"> Built with ❤️ using React, Node.js, Express, Gemini, PostgreSQL and Supabase. </p> ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
