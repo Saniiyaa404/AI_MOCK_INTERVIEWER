@@ -1,4 +1,5 @@
 const express = require("express");
+const authenticateUser = require("../middleware/authMiddleware");
 const { 
     testAI, 
     testGemini,
@@ -19,7 +20,7 @@ const {
 
 const router = express.Router();
 
-router.post("/start", async (req, res) => {
+router.post("/start", authenticateUser, async (req, res) => {
     try {
         const { role, difficulty, resumeId } = req.body;
 
@@ -32,7 +33,8 @@ router.post("/start", async (req, res) => {
         const interview = await createInterview(
             role,
             difficulty,
-            resumeId
+            resumeId,
+            req.user.id
         );
 
         res.status(201).json({
@@ -49,7 +51,7 @@ router.post("/start", async (req, res) => {
     }
 });
 
-router.post("/:interviewId/questions", async (req, res) => {
+router.post("/:interviewId/questions", authenticateUser, async (req, res) => {
     try {
         const { interviewId } = req.params;
 
@@ -79,7 +81,8 @@ router.post("/:interviewId/questions", async (req, res) => {
             topic,
             difficulty,
             isFollowUp || false,
-            questionText
+            questionText,
+            req.user.id
         );
 
         res.status(201).json({
@@ -96,7 +99,7 @@ router.post("/:interviewId/questions", async (req, res) => {
     }
 });
 
-router.post("/:interviewId/answers", async (req, res) => {
+router.post("/:interviewId/answers", authenticateUser, async (req, res) => {
     try {
         const {
             questionId,
@@ -130,7 +133,8 @@ router.post("/:interviewId/answers", async (req, res) => {
             communicationClarity,
             overallScore,
             feedback,
-            improvement
+            improvement,
+            req.user.id
         );
 
         res.status(201).json({
@@ -147,7 +151,7 @@ router.post("/:interviewId/answers", async (req, res) => {
     }
 });
 
-router.patch("/:interviewId/complete", async (req, res) => {
+router.patch("/:interviewId/complete", authenticateUser, async (req, res) => {
     try {
         const { interviewId } = req.params;
 
@@ -157,7 +161,7 @@ router.patch("/:interviewId/complete", async (req, res) => {
             });
         }
 
-        const interview = await completeInterview(interviewId);
+        const interview = await completeInterview(interviewId, req.user.id);
 
         res.status(200).json({
             message: "Interview completed successfully",
@@ -174,9 +178,9 @@ router.patch("/:interviewId/complete", async (req, res) => {
 });
 
 // List of all interviews for the History page
-router.get("/history", async (req, res) => {
+router.get("/history", authenticateUser, async (req, res) => {
     try {
-        const interviews = await getInterviewHistory();
+        const interviews = await getInterviewHistory(req.user.id);
 
         res.json({ interviews });
 
@@ -189,11 +193,11 @@ router.get("/history", async (req, res) => {
     }
 });
 
-router.get("/:interviewId/results", async (req, res) => {
+router.get("/:interviewId/results", authenticateUser, async (req, res) => {
     try {
         const { interviewId } = req.params;
 
-        const results = await getInterviewResults(interviewId);
+        const results = await getInterviewResults(interviewId, req.user.id);
 
         res.json(results);
 

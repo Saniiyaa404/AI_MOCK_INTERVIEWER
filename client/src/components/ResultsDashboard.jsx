@@ -1,6 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getAuthHeaders } from "../services/api";
 import "./ResultsDashboard.css";
 
 function ResultsDashboard({ interviewId }) {
@@ -12,8 +13,13 @@ function ResultsDashboard({ interviewId }) {
     useEffect(() => {
         const fetchResults = async () => {
             try {
+                const authHeaders = await getAuthHeaders();
+
                 const response = await fetch(
-                    `${API_URL}/api/interview/${interviewId}/results`
+                    `${API_URL}/api/interview/${interviewId}/results`,
+                    {
+                        headers: authHeaders,
+                    }
                 );
 
                 if (!response.ok) {

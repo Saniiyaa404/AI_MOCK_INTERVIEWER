@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InterviewContext } from "./InterviewContext";
+import { supabase } from "../lib/supabase";
 
 const RESUME_KEY = "mockInterviewer.resume";
 const LAST_RESULT_KEY = "mockInterviewer.lastResultId";
@@ -32,8 +33,54 @@ export function InterviewProvider({ children }) {
     const [status, setStatus] = useState("idle");
     const [active, setActive] = useState(null);
     const [lastResultId, setLastResultId] = useState(readLastResult);
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
 
     const isLocked = status === "starting" || status === "active";
+
+    useEffect(() => {
+        const initializeAnonymousUser = async () => {
+            try {
+                console.log("AUTH INIT RUNNING");
+
+                setAuthLoading(true);
+
+                const {
+                    data: { session }
+                } = await supabase.auth.getSession();
+
+                console.log("EXISTING SESSION:", session);
+
+                if (session?.user) {
+                    console.log("EXISTING USER:", session.user.id);
+                    setUser(session.user);
+                    return;
+                }
+
+                console.log("CREATING ANONYMOUS USER...");
+
+                const { data, error } =
+                    await supabase.auth.signInAnonymously();
+
+                if (error) {
+                    throw error;
+                }
+
+                console.log("ANONYMOUS USER CREATED:", data.user.id);
+
+                setUser(data.user);
+            } catch (error) {
+                console.error(
+                    "ANONYMOUS AUTH ERROR:",
+                    error
+                );
+            } finally {
+                setAuthLoading(false);
+            }
+        };
+
+        initializeAnonymousUser();
+    }, []);
 
     const saveResume = useCallback((nextResume) => {
         setResume(nextResume);
@@ -85,11 +132,14 @@ export function InterviewProvider({ children }) {
             resume, saveResume, clearResume,
             status, isLocked, active,
             beginStarting, failStarting, activate, markFinished,
-            lastResultId
+            lastResultId,
+            user,
+            authLoading
         }),
         [
             resume, saveResume, clearResume, status, isLocked, active,
-            beginStarting, failStarting, activate, markFinished, lastResultId
+            beginStarting, failStarting, activate, markFinished, lastResultId,
+            user, authLoading
         ]
     );
 

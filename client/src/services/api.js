@@ -1,23 +1,42 @@
+import { supabase } from "../lib/supabase";
+
 const API_URL = import.meta.env.VITE_API_URL;
 
-export async function uploadResume(file) {
-  const formData = new FormData();
+export async function getAuthHeaders() {
+    const {
+        data: { session }
+    } = await supabase.auth.getSession();
 
-  formData.append("resume", file);
-
-  const response = await fetch(
-    `${API_URL}/api/resume/upload`,
-    {
-      method: "POST",
-      body: formData,
+    if (!session?.access_token) {
+        throw new Error("Authentication session not found.");
     }
-  );
 
-  if (!response.ok) {
-    throw new Error("Failed to upload resume");
-  }
+    return {
+        Authorization: `Bearer ${session.access_token}`,
+    };
+}
 
-  return response.json();
+export async function uploadResume(file) {
+    const formData = new FormData();
+
+    formData.append("resume", file);
+
+    const authHeaders = await getAuthHeaders();
+
+    const response = await fetch(
+        `${API_URL}/api/resume/upload`,
+        {
+            method: "POST",
+            headers: authHeaders,
+            body: formData,
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to upload resume");
+    }
+
+    return response.json();
 }
 
 
@@ -162,12 +181,15 @@ export async function startInterviewInDatabase(
     difficulty,
     resumeId
 ) {
+    const authHeaders = await getAuthHeaders();
+
     const response = await fetch(
         `${API_URL}/api/interview/start`,
         {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...authHeaders,
             },
             body: JSON.stringify({
                 role,
@@ -192,12 +214,14 @@ export async function saveQuestionToDatabase(
     isFollowUp,
     questionText
 ) {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(
         `${API_URL}/api/interview/${interviewId}/questions`,
         {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...authHeaders,
             },
             body: JSON.stringify({
                 questionNumber,
@@ -227,12 +251,14 @@ export async function saveAnswerToDatabase(
     feedback,
     improvement
 ) {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(
         `${API_URL}/api/interview/${interviewId}/answers`,
         {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...authHeaders,
             },
             body: JSON.stringify({
                 questionId,
@@ -255,10 +281,13 @@ export async function saveAnswerToDatabase(
 }
 
 export async function completeInterviewInDatabase(interviewId) {
+    const authHeaders = await getAuthHeaders();
+
     const response = await fetch(
         `${API_URL}/api/interview/${interviewId}/complete`,
         {
             method: "PATCH",
+            headers: authHeaders,
         }
     );
 
@@ -270,8 +299,13 @@ export async function completeInterviewInDatabase(interviewId) {
 }
 
 export async function getInterviewHistory() {
+    const authHeaders = await getAuthHeaders();
+
     const response = await fetch(
-        `${API_URL}/api/interview/history`
+        `${API_URL}/api/interview/history`,
+        {
+            headers: authHeaders,
+        }
     );
 
     if (!response.ok) {

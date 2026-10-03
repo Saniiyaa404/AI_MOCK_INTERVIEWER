@@ -3,6 +3,7 @@ const multer = require("multer");
 const fs = require("fs"); // file system
 const { PDFParse } = require("pdf-parse");
 const { createResume } = require("../services/interviewDbService");
+const authenticateUser = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -10,7 +11,11 @@ const upload = multer({
     dest: "uploads/"
 });
 
-router.post("/upload", upload.single("resume"), async (req, res) => {
+router.post(
+    "/upload",
+    authenticateUser,
+    upload.single("resume"),
+    async (req, res) => {
     try {
         const filePath = req.file.path;
         const fileName = req.file.originalname;
@@ -26,7 +31,8 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
         // Save resume in PostgreSQL
         const resume = await createResume(
             fileName,
-            pdfData.text
+            pdfData.text,
+            req.user.id
         );
 
         // Delete temporary uploaded PDF

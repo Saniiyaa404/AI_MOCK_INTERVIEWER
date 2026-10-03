@@ -1,29 +1,37 @@
 const pool = require("../db");
 
-async function createInterview(role, difficulty, resumeId) {
+async function createInterview(role, difficulty, resumeId, userId) {
     const query = `
         INSERT INTO interviews (
             role,
             baseline_difficulty,
             resume_id,
+            user_id,
             status
         )
-        VALUES ($1, $2, $3, 'in_progress')
+        VALUES ($1, $2, $3, $4, 'in_progress')
         RETURNING
             id,
             role,
             baseline_difficulty,
             resume_id,
+            user_id,
             status,
             started_at;
     `;
 
-    const values = [role, difficulty, resumeId];
+    const values = [
+        role,
+        difficulty,
+        resumeId,
+        userId
+    ];
 
     const result = await pool.query(query, values);
 
     return result.rows[0];
 }
+
 
 async function createQuestion(
     interviewId,
@@ -31,8 +39,25 @@ async function createQuestion(
     topic,
     difficulty,
     isFollowUp,
-    questionText
+    questionText,
+    userId
 ) {
+    const ownershipQuery = `
+        SELECT id
+        FROM interviews
+        WHERE id = $1
+        AND user_id = $2;
+    `;
+
+    const ownershipResult = await pool.query(
+        ownershipQuery,
+        [interviewId, userId]
+    );
+
+    if (ownershipResult.rows.length === 0) {
+        throw new Error("Interview not found");
+    }
+
     const query = `
         INSERT INTO questions (
             interview_id,
@@ -81,8 +106,27 @@ async function createAnswer(
     communicationClarity,
     overallScore,
     feedback,
-    improvement
+    improvement,
+    userId
 ) {
+    const ownershipQuery = `
+        SELECT q.id
+        FROM questions q
+        INNER JOIN interviews i
+            ON q.interview_id = i.id
+        WHERE q.id = $1
+        AND i.user_id = $2;
+    `;
+
+    const ownershipResult = await pool.query(
+        ownershipQuery,
+        [questionId, userId]
+    );
+
+    if (ownershipResult.rows.length === 0) {
+        throw new Error("Question not found");
+    }
+
     const query = `
         INSERT INTO answers (
             question_id,
@@ -136,13 +180,14 @@ async function createAnswer(
     return result.rows[0];
 }
 
-async function completeInterview(interviewId) {
+async function completeInterview(interviewId, userId) {
     const query = `
         UPDATE interviews
         SET
             status = 'completed',
             completed_at = NOW()
         WHERE id = $1
+        AND user_id = $2
         RETURNING
             id,
             role,
@@ -152,7 +197,7 @@ async function completeInterview(interviewId) {
             completed_at;
     `;
 
-    const values = [interviewId];
+    const values = [interviewId, userId];
 
     const result = await pool.query(query, values);
 
@@ -163,24 +208,25 @@ async function completeInterview(interviewId) {
     return result.rows[0];
 }
 
-async function createResume(fileName, resumeText) {
+async function createResume(fileName, resumeText, userId) {
     const query = `
         INSERT INTO resumes (
             file_name,
-            resume_text
+            resume_text,
+            user_id
         )
-        VALUES ($1, $2)
-        RETURNING id, file_name, created_at;
+        VALUES ($1, $2, $3)
+        RETURNING id, file_name, user_id, created_at;
     `;
 
-    const values = [fileName, resumeText];
+    const values = [fileName, resumeText, userId];
 
     const result = await pool.query(query, values);
 
     return result.rows[0];
 }
 
-async function getInterviewHistory() {
+async function getInterviewHistory(userId) {
     const query = `
         SELECT
             i.id,
@@ -195,17 +241,18 @@ async function getInterviewHistory() {
         FROM interviews i
         LEFT JOIN questions q ON q.interview_id = i.id
         LEFT JOIN answers a ON a.question_id = q.id
+        WHERE i.user_id = $1
         GROUP BY i.id
         ORDER BY i.started_at DESC
         LIMIT 100;
     `;
 
-    const result = await pool.query(query);
+    const result = await pool.query(query, [userId]);
 
     return result.rows;
 }
 
-async function getInterviewResults(interviewId) {
+async function getInterviewResults(interviewId, userId) {
     const interviewQuery = `
         SELECT
             id,
@@ -215,12 +262,12 @@ async function getInterviewResults(interviewId) {
             started_at,
             completed_at
         FROM interviews
-        WHERE id = $1;
+        WHERE id = $1 AND user_id = $2;
     `;
 
     const interviewResult = await pool.query(
         interviewQuery,
-        [interviewId]
+        [interviewId, userId]
     );
 
     if (interviewResult.rows.length === 0) {
