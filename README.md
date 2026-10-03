@@ -570,7 +570,7 @@ npm run dev
 ```
 The frontend will be available at the Vite development URL shown in the terminal.
 
-🌐 Live Demo
+# 🌐 Live Demo
 Frontend
 
 - Live Application:
@@ -609,7 +609,7 @@ https://github.com/Saniiyaa404/AI_MOCK_INTERVIEWER
 6. Interview History
 <img width="1905" height="837" alt="image" src="https://github.com/user-attachments/assets/044ceb3d-5966-4f61-a28b-5bdeed91e8bc" />
 
-🧠 Adaptive Interview Logic
+# 🧠 Adaptive Interview Logic
 
 One of the core features of the application is adaptive question selection.
 
@@ -627,7 +627,7 @@ Prioritize Topics
        ↓
 Generate Next Question
 ```
-Topic Coverage
+# Topic Coverage
 
 A topic is not marked as adequately covered simply because a question from that topic was asked.
 
@@ -653,7 +653,7 @@ Move toward other topics
 ```
 This helps make the interview more responsive to candidate performance.
 
-📊 Evaluation Model
+# 📊 Evaluation Model
 
 Each answer receives a structured evaluation:
 
@@ -679,7 +679,7 @@ Each answer receives a structured evaluation:
 
 This structured output is then stored in PostgreSQL and displayed on the results dashboard.
 
-🧪 Current Implementation Status
+# 🧪 Current Implementation Status
 
 ```
 | Feature                       | Status      |
@@ -716,7 +716,7 @@ This structured output is then stored in PostgreSQL and displayed on the results
 
 The following features can be added in future iterations:
 
-# 💻 Live Coding Environment
+ 💻 Live Coding Environment
 
 Add an in-browser coding editor with:
 
@@ -727,7 +727,7 @@ Add an in-browser coding editor with:
 - AI-based code evaluation
 - 📈 Long-Term Performance Analytics
 
-# Track performance across multiple interviews and visualize:
+ Track performance across multiple interviews and visualize:
 
 - Topic-wise progress
 - Score trends
@@ -735,13 +735,13 @@ Add an in-browser coding editor with:
 - Improvement over time
 - 🧹 Anonymous User Lifecycle Management
 
-# Introduce periodic cleanup of inactive anonymous accounts and their associated data.
+ Introduce periodic cleanup of inactive anonymous accounts and their associated data.
 
-# 👤 Optional Persistent Accounts
+ 👤 Optional Persistent Accounts
 
 - Allow users to upgrade from anonymous sessions to persistent accounts while retaining their interview history.
 
-## 🎯 Project Goals
+# 🎯 Project Goals
 
 The project aims to solve several limitations of traditional mock interviews:
 
@@ -754,7 +754,7 @@ The project aims to solve several limitations of traditional mock interviews:
 
 By combining generative AI with structured interview state management and persistent user data, the platform provides a more personalized technical interview practice experience.
 
-## 🧩 Engineering Highlights
+# 🧩 Engineering Highlights
 
 This project demonstrates practical implementation of:
 
@@ -785,9 +785,6 @@ Madan Mohan Malaviya University of Technology, Gorakhpur
 
 Interests: Software Engineering · Backend Development · AI Applications · Full-Stack Development
 
-## 📄 License
-
-This project is developed for educational, portfolio, and demonstration purposes.
 
 <p align="center"> Built with ❤️ using React, Node.js, Express, Gemini, PostgreSQL and Supabase. </p> ```
 
